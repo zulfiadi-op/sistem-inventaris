@@ -91,6 +91,39 @@ $page_title = 'Data Barang';
             .main-content { margin-left: 0; }
             .sidebar.active { width: 250px; }
         }
+
+        /* Animasi untuk SweetAlert */
+        .swal2-popup {
+            font-size: 0.9rem;
+        }
+
+        .swal2-toast {
+            font-size: 0.85rem;
+        }
+
+        /* Animasi untuk tabel */
+        .table tbody tr {
+            transition: background-color 0.3s ease;
+        }
+
+        .table tbody tr:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+
+        /* Badge styling */
+        .badge {
+            padding: 0.5em 0.75em;
+            font-weight: 500;
+        }
+
+        .btn-group {
+            gap: 5px;
+        }
+
+        .btn-group .btn {
+            border-radius: 8px !important;
+            padding: 0.4rem 0.8rem;
+        }
     </style>
 </head>
 <body>
@@ -101,17 +134,17 @@ $page_title = 'Data Barang';
                 <small class="text-light">Management System</small>
             </div>
             
-              <nav class="nav flex-column mt-3">
+            <nav class="nav flex-column mt-3">
                 <a href="../dashboard.php" class="nav-link-custom">
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
-                <a href="../barang/" class="nav-link-custom">
+                <a href="../barang/" class="nav-link-custom active">
                     <i class="bi bi-box"></i> Data Barang
                 </a>
                 <a href="../transaksi/" class="nav-link-custom">
                     <i class="bi bi-arrow-left-right"></i> Transaksi
                 </a>
-                <a href="/laporan/laporan.php" class="nav-link-custom active">
+                <a href="../laporan/laporan.php" class="nav-link-custom">
                     <i class="bi bi-file-text"></i> Laporan
                 </a>
             </nav>
@@ -197,12 +230,13 @@ $page_title = 'Data Barang';
                                             <td class="text-primary fw-bold"><?php echo formatRupiah($item['harga_jual']); ?></td>
                                             <td class="text-center">
                                                 <div class="btn-group shadow-sm">
-                                                    <a href="edit.php?id=<?php echo $item['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                                    <a href="edit.php?id=<?php echo $item['id']; ?>" class="btn btn-sm btn-outline-primary" title="Edit">
                                                         <i class="bi bi-pencil"></i>
                                                     </a>
                                                     <a href="delete.php?id=<?php echo $item['id']; ?>" 
                                                        class="btn btn-sm btn-outline-danger delete-btn"
-                                                       data-name="<?php echo htmlspecialchars($item['nama_barang']); ?>">
+                                                       data-name="<?php echo htmlspecialchars($item['nama_barang']); ?>"
+                                                       title="Hapus">
                                                         <i class="bi bi-trash"></i>
                                                     </a>
                                                 </div>
@@ -211,6 +245,11 @@ $page_title = 'Data Barang';
                                         <?php endforeach; ?>
                                     </tbody>
                                 </table>
+                            </div>
+                            
+                            <!-- Info total data -->
+                            <div class="mt-3 text-muted">
+                                <small><i class="bi bi-database"></i> Total <?php echo count($barang); ?> barang</small>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -221,13 +260,78 @@ $page_title = 'Data Barang';
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
-        // Sidebar Toggle
+        // Sidebar Toggle untuk mobile
         document.getElementById('sidebarToggle')?.addEventListener('click', function() {
             document.querySelector('.sidebar').classList.toggle('active');
         });
 
-        // Delete Confirmation
+        // Cek parameter URL untuk menampilkan SweetAlert
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const message = urlParams.get('message');
+            
+            if (message === 'update_success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: 'Data barang telah diperbarui.',
+                    timer: 3000,
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    toast: true,
+                    position: 'top-end',
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    }
+                }).then(() => {
+                    // Bersihkan parameter URL agar saat direfresh alert tidak muncul lagi
+                    const url = new URL(window.location);
+                    url.searchParams.delete('message');
+                    window.history.replaceState({}, document.title, url);
+                });
+            }
+            
+            // Cek untuk pesan sukses lainnya (jika ada)
+            if (message === 'create_success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: 'Data barang telah ditambahkan.',
+                    timer: 3000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end',
+                    timerProgressBar: true
+                }).then(() => {
+                    const url = new URL(window.location);
+                    url.searchParams.delete('message');
+                    window.history.replaceState({}, document.title, url);
+                });
+            }
+            
+            if (message === 'delete_success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: 'Data barang telah dihapus.',
+                    timer: 3000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end',
+                    timerProgressBar: true
+                }).then(() => {
+                    const url = new URL(window.location);
+                    url.searchParams.delete('message');
+                    window.history.replaceState({}, document.title, url);
+                });
+            }
+        });
+
+        // Delete Confirmation dengan SweetAlert
         document.querySelectorAll('.delete-btn').forEach(button => {
             button.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -236,16 +340,90 @@ $page_title = 'Data Barang';
                 
                 Swal.fire({
                     title: 'Hapus Barang?',
-                    html: `Anda akan menghapus: <b>${name}</b>`,
+                    html: `Anda akan menghapus: <strong>${name}</strong><br><br>Data yang dihapus tidak dapat dikembalikan!`,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
-                    confirmButtonText: 'Ya, Hapus'
-                }).then((result) => {
-                    if (result.isConfirmed) window.location.href = url;
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Ya, Hapus!',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true,
+                    showLoaderOnConfirm: true,
+                    preConfirm: () => {
+                        return new Promise((resolve) => {
+                            setTimeout(() => {
+                                window.location.href = url;
+                            }, 500);
+                        });
+                    }
                 });
             });
         });
+
+        // Auto hide alerts after 5 seconds
+        setTimeout(function() {
+            document.querySelectorAll('.alert').forEach(alert => {
+                alert.style.transition = 'opacity 0.5s';
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 500);
+            });
+        }, 5000);
+
+        // Fungsi untuk refresh data tanpa reload (optional)
+        function refreshData() {
+            Swal.fire({
+                title: 'Memuat ulang...',
+                text: 'Harap tunggu sebentar',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                }
+            });
+        }
+
+        // Tooltip initialization (optional)
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+        var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
     </script>
+
+    <!-- Optional: Tambahkan CSS untuk animasi loading -->
+    <style>
+        /* Animasi untuk loading */
+        .swal2-loading {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        /* Hover effect untuk baris tabel */
+        .table tbody tr {
+            transition: all 0.2s ease;
+        }
+        
+        .table tbody tr:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+            transform: translateX(5px);
+        }
+        
+        /* Shadow untuk card */
+        .card {
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,.1) !important;
+        }
+    </style>
 </body>
 </html>

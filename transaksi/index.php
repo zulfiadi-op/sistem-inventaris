@@ -131,6 +131,8 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Sweet Alert CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     
     <style>
         :root {
@@ -260,6 +262,12 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             border: none;
             border-radius: 25px;
             padding: 8px 20px;
+            color: white;
+        }
+        
+        .btn-primary-custom:hover {
+            background: linear-gradient(45deg, var(--secondary-color), var(--primary-color));
+            color: white;
         }
         
         .modal-header-custom {
@@ -574,7 +582,7 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary-custom">
+                        <button type="submit" class="btn btn-primary-custom" id="btnSubmitSupply">
                             <i class="bi bi-save me-2"></i> Simpan Supply
                         </button>
                     </div>
@@ -585,6 +593,8 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
 
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Sweet Alert JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script>
         // Toggle Sidebar on Mobile
@@ -621,26 +631,95 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             modal.show();
         }
         
-        // Form Submission dengan validasi client-side
+        // Form Submission dengan validasi client-side menggunakan Sweet Alert
         document.getElementById('formSupply').addEventListener('submit', function(e) {
+            e.preventDefault(); // Mencegah submit form langsung
+            
             const jumlah = document.getElementById('modalJumlah').value;
             const supplier = document.getElementById('modalSupplier').value;
+            const namaBarang = document.getElementById('modalNamaBarang').value;
             
+            // Validasi dengan Sweet Alert
             if (!jumlah || jumlah < 1) {
-                e.preventDefault();
-                alert('Harap masukkan jumlah yang valid (minimal 1)');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Jumlah Tidak Valid',
+                    text: 'Harap masukkan jumlah yang valid (minimal 1)',
+                    confirmButtonColor: '#4361ee'
+                });
                 return false;
             }
             
             if (!supplier) {
-                e.preventDefault();
-                alert('Harap pilih supplier');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Supplier Belum Dipilih',
+                    text: 'Harap pilih supplier terlebih dahulu',
+                    confirmButtonColor: '#4361ee'
+                });
                 return false;
             }
             
-            // Jika valid, form akan submit normal ke server
-            return true;
+            // Konfirmasi sebelum submit
+            Swal.fire({
+                title: 'Konfirmasi Supply',
+                html: `
+                    <div style="text-align: left">
+                        <p><strong>Barang:</strong> ${namaBarang}</p>
+                        <p><strong>Jumlah:</strong> ${jumlah} pcs</p>
+                        <p><strong>Supplier:</strong> ${supplier}</p>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#4cc9f0',
+                cancelButtonColor: '#f72585',
+                confirmButtonText: 'Ya, Supply!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Tampilkan loading
+                    Swal.fire({
+                        title: 'Memproses...',
+                        html: 'Mohon tunggu sebentar',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Submit form setelah konfirmasi
+                    e.target.submit();
+                }
+            });
         });
+        
+        // Tampilkan pesan sukses/error dengan Sweet Alert
+        <?php if (!empty($success_message)): ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: '<?php echo addslashes($success_message); ?>',
+                showConfirmButton: true,
+                confirmButtonColor: '#4cc9f0',
+                timer: 3000,
+                timerProgressBar: true
+            });
+        });
+        <?php endif; ?>
+        
+        <?php if (!empty($error_message)): ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: '<?php echo addslashes($error_message); ?>',
+                showConfirmButton: true,
+                confirmButtonColor: '#f72585'
+            });
+        });
+        <?php endif; ?>
         
         // Initialize tooltips
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -648,22 +727,5 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     </script>
-    
-    <!-- Tampilkan pesan sukses/error jika ada -->
-    <?php if (!empty($success_message)): ?>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            alert('<?php echo addslashes($success_message); ?>');
-        });
-    </script>
-    <?php endif; ?>
-    
-    <?php if (!empty($error_message)): ?>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            alert('Error: <?php echo addslashes($error_message); ?>');
-        });
-    </script>
-    <?php endif; ?>
 </body>
 </html>

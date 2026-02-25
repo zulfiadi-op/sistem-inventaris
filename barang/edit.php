@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     );
     
     if (mysqli_stmt_execute($stmt)) {
-        // Redirect dengan parameter sukses
+        // Redirect ke halaman index dengan parameter sukses
         header('Location: index.php?message=update_success');
         exit();
     } else {
@@ -78,6 +78,7 @@ $page_title = 'Edit Barang';
 <?php include '../includes/header.php'; ?>
 <?php include '../includes/navbar.php'; ?>
 
+<!-- SweetAlert2 CDN -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
@@ -90,12 +91,18 @@ $page_title = 'Edit Barang';
 <div class="card">
     <div class="card-body">
         <?php if (isset($error)): ?>
-            <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle"></i> <?php echo $error; ?>
-            </div>
+            <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: '<?php echo addslashes($error); ?>',
+                showConfirmButton: true,
+                timer: 5000
+            });
+            </script>
         <?php endif; ?>
         
-        <form method="POST" action="">
+        <form method="POST" action="" id="editForm">
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label for="kode_barang" class="form-label">Kode Barang</label>
@@ -124,6 +131,10 @@ $page_title = 'Edit Barang';
             
             <div class="row mb-3">
                 <div class="col-md-6">
+                    <label for="keterangan" class="form-label">Keterangan</label>
+                    <textarea class="form-control" id="keterangan" name="keterangan" rows="2"><?php echo htmlspecialchars($barang['keterangan'] ?? ''); ?></textarea>
+                </div>
+                <div class="col-md-6">
                     <label for="harga_satuan" class="form-label">Harga Satuan (Harga Beli)</label>
                     <div class="input-group">
                         <span class="input-group-text">Rp</span>
@@ -132,38 +143,46 @@ $page_title = 'Edit Barang';
                                required min="0" oninput="calculateHargaJual()">
                     </div>
                 </div>
+            </div>
+            
+            <div class="row mb-3">
                 <div class="col-md-6">
                     <label for="harga_jual" class="form-label">Harga Jual</label>
                     <div class="input-group">
                         <span class="input-group-text">Rp</span>
                         <input type="number" class="form-control" id="harga_jual" name="harga_jual" 
                                value="<?php echo htmlspecialchars($barang['harga_jual'] ?? 0); ?>" 
-                               required min="0">
+                               required min="0" oninput="calculateHargaJual()">
                     </div>
-                    <div class="form-text">
-                        <small>Margin saat ini: 
-                            <span id="margin_text">
-                                <?php 
-                                $harga_beli = $barang['harga_satuan'] ?? 0;
-                                $harga_jual_val = $barang['harga_jual'] ?? 0;
-                                $margin = $harga_jual_val - $harga_beli;
-                                $persen = ($harga_beli > 0) ? round(($margin/$harga_beli)*100, 1) : 0;
-                                echo formatRupiah($margin) . " ($persen%)";
-                                ?>
-                            </span>
-                            <button type="button" class="btn btn-sm btn-outline-primary ms-2" onclick="applyDefaultMarkup()">
-                                <i class="bi bi-calculator"></i> Hitung 50% Markup
-                            </button>
-                        </small>
+                </div>
+                <div class="col-md-6">
+                    <div class="mt-4">
+                        <div class="alert alert-info py-2 px-3 mb-0">
+                            <small>
+                                <i class="bi bi-info-circle"></i> 
+                                Margin: <strong id="margin_text">
+                                    <?php 
+                                    $harga_beli = $barang['harga_satuan'] ?? 0;
+                                    $harga_jual_val = $barang['harga_jual'] ?? 0;
+                                    $margin = $harga_jual_val - $harga_beli;
+                                    $persen = ($harga_beli > 0) ? round(($margin/$harga_beli)*100, 1) : 0;
+                                    echo 'Rp ' . number_format($margin, 0, ',', '.') . " ($persen%)";
+                                    ?>
+                                </strong>
+                            </small>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary mt-2 w-100" onclick="applyDefaultMarkup()">
+                            <i class="bi bi-calculator"></i> Hitung dengan Markup 50%
+                        </button>
                     </div>
                 </div>
             </div>
             
-            <div class="d-flex justify-content-between">
-                <button type="submit" class="btn btn-primary">
+            <div class="d-flex justify-content-between mt-4">
+                <button type="submit" class="btn btn-primary" id="btnUpdate">
                     <i class="bi bi-save"></i> Update Barang
                 </button>
-                <button type="button" class="btn btn-outline-danger" onclick="window.location.href='index.php'">
+                <button type="button" class="btn btn-outline-danger" onclick="confirmCancel()">
                     <i class="bi bi-x-circle"></i> Batal
                 </button>
             </div>
@@ -172,52 +191,192 @@ $page_title = 'Edit Barang';
 </div>
 
 <script>
-// Fungsi untuk cek parameter URL dan tampilkan SweetAlert
+// Fungsi untuk inisialisasi halaman
 document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('message') === 'update_success') {
-        Swal.fire({
-            icon: 'success',
-            title: 'Berhasil!',
-            text: 'Data barang telah diperbarui.',
-            timer: 3000,
-            showConfirmButton: false
-        }).then(() => {
-            // Bersihkan parameter URL agar saat direfresh alert tidak muncul lagi
-            window.history.replaceState({}, document.title, window.location.pathname);
-        });
-    }
-    
     // Inisialisasi margin display
     calculateHargaJual();
+    
+    // Tambahkan event listener untuk form submit
+    document.getElementById('editForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        confirmUpdate();
+    });
 });
 
 function calculateHargaJual() {
-    const hargaSatuan = document.getElementById('harga_satuan').value;
-    const hargaJualInput = document.getElementById('harga_jual');
+    const hargaSatuan = parseFloat(document.getElementById('harga_satuan').value) || 0;
+    const hargaJualInput = parseFloat(document.getElementById('harga_jual').value) || 0;
     
-    if (hargaSatuan) {
-        const currentJual = parseFloat(hargaJualInput.value) || 0;
-        const currentSatuan = parseFloat(hargaSatuan);
+    if (hargaSatuan > 0 && hargaJualInput > 0) {
+        const margin = hargaJualInput - hargaSatuan;
+        const persen = ((margin / hargaSatuan) * 100).toFixed(1);
+        document.getElementById('margin_text').innerHTML = 
+            `Rp ${margin.toLocaleString('id-ID')} (${persen}%)`;
         
-        if (currentSatuan > 0) {
-            const margin = currentJual - currentSatuan;
-            const persen = Math.round((margin / currentSatuan) * 100 * 10) / 10;
-            document.getElementById('margin_text').innerText = 
-                `Rp ${margin.toLocaleString('id-ID')} (${persen}%)`;
+        // Beri warna berdasarkan margin
+        const marginElement = document.getElementById('margin_text');
+        if (persen < 20) {
+            marginElement.className = 'text-danger';
+        } else if (persen < 40) {
+            marginElement.className = 'text-warning';
+        } else {
+            marginElement.className = 'text-success';
         }
+    } else {
+        document.getElementById('margin_text').innerHTML = 'Rp 0 (0%)';
+        document.getElementById('margin_text').className = '';
     }
 }
 
 function applyDefaultMarkup() {
     const hargaSatuan = document.getElementById('harga_satuan').value;
-    if (hargaSatuan) {
-        const hargaJual = Math.round(parseInt(hargaSatuan) * 1.5);
+    if (hargaSatuan && parseFloat(hargaSatuan) > 0) {
+        const hargaJual = Math.round(parseFloat(hargaSatuan) * 1.5);
         document.getElementById('harga_jual').value = hargaJual;
         calculateHargaJual();
+        
+        // Tampilkan notifikasi kecil
+        Swal.fire({
+            icon: 'info',
+            title: 'Harga Jual Dihitung',
+            text: `Harga jual dengan markup 50%: Rp ${hargaJual.toLocaleString('id-ID')}`,
+            timer: 2000,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+        });
+    } else {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Perhatian',
+            text: 'Masukkan harga satuan terlebih dahulu!',
+            timer: 2000,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+        });
     }
 }
+
+function confirmUpdate() {
+    // Validasi form
+    const form = document.getElementById('editForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    Swal.fire({
+        title: 'Konfirmasi Update',
+        text: "Apakah Anda yakin ingin menyimpan perubahan data barang?",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Ya, Update!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Tampilkan loading
+            Swal.fire({
+                title: 'Memproses...',
+                text: 'Harap tunggu sebentar',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    // Submit form
+                    form.submit();
+                }
+            });
+        }
+    });
+}
+
+function confirmCancel() {
+    Swal.fire({
+        title: 'Batalkan Edit?',
+        text: "Perubahan yang belum disimpan akan hilang!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Ya, Kembali',
+        cancelButtonText: 'Tetap di Sini'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = 'index.php';
+        }
+    });
+}
+
+// Peringatan jika ada perubahan sebelum meninggalkan halaman
+let formChanged = false;
+document.querySelectorAll('#editForm input, #editForm textarea').forEach(element => {
+    element.addEventListener('change', () => {
+        formChanged = true;
+    });
+    
+    element.addEventListener('input', () => {
+        formChanged = true;
+    });
+});
+
+window.addEventListener('beforeunload', function(e) {
+    if (formChanged) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
 </script>
+
+<style>
+/* Style tambahan untuk SweetAlert */
+.swal2-popup {
+    font-size: 0.9rem;
+}
+
+.swal2-toast {
+    font-size: 0.85rem;
+}
+
+/* Style untuk margin text */
+#margin_text {
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+}
+
+.text-warning {
+    color: #ffc107 !important;
+}
+
+.text-success {
+    color: #28a745 !important;
+}
+
+/* Hover effect untuk button */
+.btn-outline-primary:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s;
+}
+
+/* Animasi loading */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.btn-primary:disabled {
+    animation: pulse 1.5s infinite;
+}
+</style>
 
 <?php 
 $footer_path = '../includes/footer.php';

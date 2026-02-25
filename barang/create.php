@@ -42,7 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stok_barang, $keterangan, $harga_satuan, $harga_jual);
     
     if (mysqli_stmt_execute($stmt)) {
-        header('Location: index.php?message=add_success');
+        // Redirect dengan parameter success
+        header('Location: index.php?status=success&message=Barang berhasil ditambahkan');
         exit();
     } else {
         $error = "Gagal menambahkan barang! Error: " . mysqli_error($conn);
@@ -56,7 +57,9 @@ $page_title = 'Tambah Barang';
 <?php include '../includes/header.php'; ?>
 <?php include '../includes/navbar.php'; ?>
 
-
+<!-- Tambahkan Sweet Alert CSS dan JS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Tambah Barang Baru</h1>
@@ -68,10 +71,18 @@ $page_title = 'Tambah Barang';
 <div class="card">
     <div class="card-body">
         <?php if (isset($error)): ?>
-            <div class="alert alert-danger"><?php echo $error; ?></div>
+            <script>
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: '<?php echo $error; ?>',
+                    showConfirmButton: true,
+                    timer: 3000
+                });
+            </script>
         <?php endif; ?>
         
-        <form method="POST">
+        <form method="POST" id="formTambahBarang">
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label for="kode_barang" class="form-label">Kode Barang</label>
@@ -115,7 +126,12 @@ $page_title = 'Tambah Barang';
                 </div>
             </div>
             
-            <button type="submit" class="btn btn-primary">
+            <div class="mb-3">
+                <label for="keterangan" class="form-label">Keterangan</label>
+                <textarea class="form-control" id="keterangan" name="keterangan" rows="2"></textarea>
+            </div>
+            
+            <button type="button" class="btn btn-primary" onclick="confirmSubmit()">
                 <i class="bi bi-save"></i> Simpan Barang
             </button>
         </form>
@@ -133,8 +149,64 @@ function calculateHargaJual() {
     }
 }
 
+function confirmSubmit() {
+    // Validasi form
+    const namaBarang = document.getElementById('nama_barang').value;
+    const stokBarang = document.getElementById('stok_barang').value;
+    const hargaSatuan = document.getElementById('harga_satuan').value;
+    
+    if (!namaBarang || !stokBarang || !hargaSatuan) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Form Belum Lengkap',
+            text: 'Harap isi semua field yang wajib diisi!',
+            showConfirmButton: true,
+            timer: 3000
+        });
+        return;
+    }
+    
+    // Tampilkan konfirmasi dengan Sweet Alert
+    Swal.fire({
+        title: 'Konfirmasi Simpan',
+        text: "Apakah Anda yakin ingin menyimpan data barang ini?",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Ya, Simpan!',
+        cancelButtonText: 'Batal',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            return new Promise((resolve) => {
+                // Submit form
+                document.getElementById('formTambahBarang').submit();
+                resolve();
+            });
+        }
+    });
+}
+
 // Hitung otomatis saat halaman dimuat
 document.addEventListener('DOMContentLoaded', function() {
     calculateHargaJual();
 });
+
+// Tampilkan notifikasi jika ada parameter di URL
+<?php if(isset($_GET['status']) && $_GET['status'] == 'success'): ?>
+document.addEventListener('DOMContentLoaded', function() {
+    Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: '<?php echo isset($_GET['message']) ? $_GET['message'] : 'Data barang berhasil ditambahkan'; ?>',
+        showConfirmButton: false,
+        timer: 2000
+    }).then(() => {
+        // Redirect ke halaman index setelah notifikasi
+        window.location.href = 'index.php';
+    });
+});
+<?php endif; ?>
 </script>
+
+<?php include '../includes/footer.php'; ?>

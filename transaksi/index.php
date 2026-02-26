@@ -332,21 +332,20 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                 <h4 class="mb-0"><i class="bi bi-box-seam"></i> Inventaris Roti</h4>
                 <small class="text-light">Supply Management</small>
             </div>
-            
-            <nav class="nav flex-column mt-3">
-                <a href="../dashboard.php" class="nav-link-custom">
-                    <i class="bi bi-speedometer2"></i> Dashboard
-                </a>
-                <a href="../barang/" class="nav-link-custom">
-                    <i class="bi bi-box"></i> Data Barang
-                </a>
-                <a href="../transaksi/" class="nav-link-custom">
-                    <i class="bi bi-arrow-left-right"></i> Transaksi
-                </a>
-                <a href="/laporan/laporan.php" class="nav-link-custom active">
-                    <i class="bi bi-file-text"></i> Laporan
-                </a>
-            </nav>
+          <nav class="nav flex-column mt-3">
+    <a href="../dashboard.php" class="nav-link-custom">
+        <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+    <a href="../barang/" class="nav-link-custom">
+        <i class="bi bi-box"></i> Data Barang
+    </a>
+    <a href="../transaksi/" class="nav-link-custom active">
+        <i class="bi bi-arrow-left-right"></i> Transaksi
+    </a>
+    <a href="../laporan/laporan.php" class="nav-link-custom">
+        <i class="bi bi-file-text"></i> Laporan
+    </a>
+</nav>
             
             <div class="user-info mt-auto">
                 <div class="d-flex align-items-center">

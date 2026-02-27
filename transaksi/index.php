@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 /* =======================
-   PROSES TAMBAH SUPPLY (DIINTEGRASIKAN)
+   PROSES TAMBAH SUPPLY
 ======================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_supply') {
     $id_barang = mysqli_real_escape_string($conn, $_POST['id_barang']);
@@ -17,43 +17,206 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $keterangan = mysqli_real_escape_string($conn, $_POST['keterangan']);
     $id_user = $_SESSION['user_id'];
     
+    // CEK STOK SAAT INI SEBELUM PROSES
+    $query_cek_stok = "SELECT stok_barang, nama_barang FROM barang WHERE id_barang = '$id_barang'";
+    $result_cek = mysqli_query($conn, $query_cek_stok);
+    $barang = mysqli_fetch_assoc($result_cek);
+    
+    if ($barang) {
+        $stok_saat_ini = $barang['stok_barang'];
+        
+        // VALIDASI: Apakah jumlah supply melebihi stok?
+        if ($jumlah > $stok_saat_ini) {
+            $_SESSION['error_message'] = "Gagal! Jumlah supply ($jumlah pcs) melebihi stok yang tersedia ($stok_saat_ini pcs) untuk barang " . $barang['nama_barang'];
+            header('Location: index.php');
+            exit();
+        }
+        
+        // Jika validasi lolos, lanjutkan transaksi
+        mysqli_begin_transaction($conn);
+        
+        try {
+            // 1. Tambah transaksi
+            $query_insert = "
+            INSERT INTO transaksi (id_barang, jumlah, supplier, keterangan, tanggal_transaksi, id_user, status)
+            VALUES ('$id_barang', '$jumlah', '$supplier', '$keterangan', NOW(), '$id_user', 'masuk')
+            ";
+            
+            if (!mysqli_query($conn, $query_insert)) {
+                throw new Exception("Gagal menambah transaksi: " . mysqli_error($conn));
+            }
+            
+            // 2. Update stok
+            $query_update = "
+            UPDATE barang 
+            SET stok_barang = stok_barang + $jumlah 
+            WHERE id_barang = '$id_barang'
+            ";
+            
+            if (!mysqli_query($conn, $query_update)) {
+                throw new Exception("Gagal update stok: " . mysqli_error($conn));
+            }
+            
+            mysqli_commit($conn);
+            
+            $_SESSION['success_message'] = "Supply berhasil ditambahkan! Jumlah: $jumlah pcs";
+            
+        } catch (Exception $e) {
+            mysqli_rollback($conn);
+            $_SESSION['error_message'] = $e->getMessage();
+        }
+    } else {
+        $_SESSION['error_message'] = "Barang tidak ditemukan!";
+    }
+    
+    header('Location: index.php');
+    exit();
+}
+
+/* =======================
+   PROSES EDIT SUPPLY
+======================= */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit_supply') {
+    $id_transaksi = mysqli_real_escape_string($conn, $_POST['id_transaksi']);
+    $id_barang = mysqli_real_escape_string($conn, $_POST['id_barang']);
+    $jumlah_baru = mysqli_real_escape_string($conn, $_POST['jumlah']);
+    $supplier = mysqli_real_escape_string($conn, $_POST['supplier']);
+    $keterangan = mysqli_real_escape_string($conn, $_POST['keterangan']);
+    $id_user = $_SESSION['user_id'];
+    
+    // Ambil data transaksi lama
+    $query_transaksi_lama = "SELECT * FROM transaksi WHERE id_transaksi = '$id_transaksi' AND status = 'masuk'";
+    $result_transaksi_lama = mysqli_query($conn, $query_transaksi_lama);
+    $transaksi_lama = mysqli_fetch_assoc($result_transaksi_lama);
+    
+    if (!$transaksi_lama) {
+        $_SESSION['error_message'] = "Transaksi tidak ditemukan!";
+        header('Location: index.php');
+        exit();
+    }
+    
+    // Ambil data barang
+    $query_barang = "SELECT stok_barang, nama_barang FROM barang WHERE id_barang = '$id_barang'";
+    $result_barang = mysqli_query($conn, $query_barang);
+    $barang = mysqli_fetch_assoc($result_barang);
+    
+    if (!$barang) {
+        $_SESSION['error_message'] = "Barang tidak ditemukan!";
+        header('Location: index.php');
+        exit();
+    }
+    
+    // Hitung stok setelah mengembalikan transaksi lama
+    $stok_setelah_kembali = $barang['stok_barang'] - $transaksi_lama['jumlah'];
+    
+    // VALIDASI: Apakah jumlah baru melebihi stok yang tersedia?
+    if ($jumlah_baru > $stok_setelah_kembali) {
+        $_SESSION['error_message'] = "Gagal! Jumlah supply baru ($jumlah_baru pcs) melebihi stok yang tersedia ($stok_setelah_kembali pcs) untuk barang " . $barang['nama_barang'];
+        header('Location: index.php');
+        exit();
+    }
+    
     // Mulai transaksi
     mysqli_begin_transaction($conn);
     
     try {
-        // 1. Tambah transaksi
-        $query_insert = "
-        INSERT INTO transaksi (id_barang, jumlah, supplier, keterangan, tanggal_transaksi, id_user, status)
-        VALUES ('$id_barang', '$jumlah', '$supplier', '$keterangan', NOW(), '$id_user', 'masuk')
-        ";
-        
-        if (!mysqli_query($conn, $query_insert)) {
-            throw new Exception("Gagal menambah transaksi: " . mysqli_error($conn));
-        }
-        
-        // 2. Update stok
-        $query_update = "
+        // 1. Kembalikan stok ke kondisi sebelum transaksi lama
+        $query_kembalikan_stok = "
         UPDATE barang 
-        SET stok_barang = stok_barang + $jumlah 
+        SET stok_barang = stok_barang - {$transaksi_lama['jumlah']}
         WHERE id_barang = '$id_barang'
         ";
         
-        if (!mysqli_query($conn, $query_update)) {
+        if (!mysqli_query($conn, $query_kembalikan_stok)) {
+            throw new Exception("Gagal mengembalikan stok: " . mysqli_error($conn));
+        }
+        
+        // 2. Update transaksi dengan data baru
+        $query_update_transaksi = "
+        UPDATE transaksi 
+        SET jumlah = '$jumlah_baru', 
+            supplier = '$supplier', 
+            keterangan = '$keterangan',
+            tanggal_transaksi = NOW()
+        WHERE id_transaksi = '$id_transaksi'
+        ";
+        
+        if (!mysqli_query($conn, $query_update_transaksi)) {
+            throw new Exception("Gagal mengupdate transaksi: " . mysqli_error($conn));
+        }
+        
+        // 3. Update stok dengan jumlah baru
+        $query_update_stok = "
+        UPDATE barang 
+        SET stok_barang = stok_barang + $jumlah_baru
+        WHERE id_barang = '$id_barang'
+        ";
+        
+        if (!mysqli_query($conn, $query_update_stok)) {
             throw new Exception("Gagal update stok: " . mysqli_error($conn));
         }
         
-        // Commit transaksi
         mysqli_commit($conn);
         
-        $_SESSION['success_message'] = "Supply berhasil ditambahkan! Jumlah: $jumlah pcs";
+        $_SESSION['success_message'] = "Supply berhasil diupdate! Jumlah: $jumlah_baru pcs";
         
     } catch (Exception $e) {
-        // Rollback jika ada error
         mysqli_rollback($conn);
         $_SESSION['error_message'] = $e->getMessage();
     }
     
-    // Redirect untuk menghindari resubmit
+    header('Location: index.php');
+    exit();
+}
+
+/* =======================
+   PROSES HAPUS SUPPLY
+======================= */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_supply') {
+    $id_transaksi = mysqli_real_escape_string($conn, $_POST['id_transaksi']);
+    
+    // Ambil data transaksi yang akan dihapus
+    $query_transaksi = "SELECT t.*, b.nama_barang FROM transaksi t JOIN barang b ON t.id_barang = b.id_barang WHERE t.id_transaksi = '$id_transaksi' AND t.status = 'masuk'";
+    $result_transaksi = mysqli_query($conn, $query_transaksi);
+    $transaksi = mysqli_fetch_assoc($result_transaksi);
+    
+    if (!$transaksi) {
+        $_SESSION['error_message'] = "Transaksi tidak ditemukan!";
+        header('Location: index.php');
+        exit();
+    }
+    
+    // Mulai transaksi
+    mysqli_begin_transaction($conn);
+    
+    try {
+        // 1. Kembalikan stok (kurangi stok karena transaksi dihapus)
+        $query_kembalikan_stok = "
+        UPDATE barang 
+        SET stok_barang = stok_barang - {$transaksi['jumlah']}
+        WHERE id_barang = '{$transaksi['id_barang']}'
+        ";
+        
+        if (!mysqli_query($conn, $query_kembalikan_stok)) {
+            throw new Exception("Gagal mengembalikan stok: " . mysqli_error($conn));
+        }
+        
+        // 2. Hapus transaksi
+        $query_hapus = "DELETE FROM transaksi WHERE id_transaksi = '$id_transaksi'";
+        
+        if (!mysqli_query($conn, $query_hapus)) {
+            throw new Exception("Gagal menghapus transaksi: " . mysqli_error($conn));
+        }
+        
+        mysqli_commit($conn);
+        
+        $_SESSION['success_message'] = "Supply berhasil dihapus! Jumlah: {$transaksi['jumlah']} pcs - {$transaksi['nama_barang']}";
+        
+    } catch (Exception $e) {
+        mysqli_rollback($conn);
+        $_SESSION['error_message'] = $e->getMessage();
+    }
+    
     header('Location: index.php');
     exit();
 }
@@ -82,7 +245,8 @@ $query_supply = "
 SELECT 
     t.*,
     b.nama_barang,
-    b.kode_barang
+    b.kode_barang,
+    b.stok_barang as stok_terkini
 FROM transaksi t
 JOIN barang b ON t.id_barang = b.id_barang
 WHERE DATE(t.tanggal_transaksi) = CURDATE()
@@ -509,6 +673,27 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             padding: 1rem 0.75rem;
         }
         
+        /* Action Buttons */
+        .btn-action {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            margin: 0 2px;
+        }
+        
+        .btn-action:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-action i {
+            font-size: 1rem;
+        }
+        
         /* Badge Styles */
         .badge {
             padding: 0.5em 0.75em;
@@ -538,6 +723,10 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             background-color: var(--primary-color) !important;
         }
         
+        .badge.bg-info {
+            background-color: #17a2b8 !important;
+        }
+        
         /* Button Custom */
         .btn-primary-custom {
             background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
@@ -553,6 +742,22 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             color: white;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn-danger-custom {
+            background: linear-gradient(45deg, #f72585, #dc3545);
+            border: none;
+            border-radius: 25px;
+            padding: 8px 20px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-danger-custom:hover {
+            background: linear-gradient(45deg, #dc3545, #f72585);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(247, 37, 133, 0.3);
         }
         
         /* Modal Styles */
@@ -571,6 +776,10 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
         
         .modal-header-custom .btn-close {
             filter: brightness(0) invert(1);
+        }
+        
+        .modal-header-custom.bg-danger {
+            background: linear-gradient(45deg, #f72585, #dc3545) !important;
         }
         
         .modal-footer {
@@ -765,7 +974,7 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                 color: var(--dark-color);
                 font-size: 0.85rem;
                 margin-right: 1rem;
-                min-width: 80px;
+                min-width: 100px;
             }
             
             .table td[data-label="Waktu"]::before { content: "Waktu"; }
@@ -774,6 +983,7 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             .table td[data-label="Jumlah"]::before { content: "Jumlah"; }
             .table td[data-label="Supplier"]::before { content: "Supplier"; }
             .table td[data-label="Status"]::before { content: "Status"; }
+            .table td[data-label="Aksi"]::before { content: "Aksi"; }
         }
         
         @media (max-width: 576px) {
@@ -883,11 +1093,16 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                 padding: 0.5rem 1rem;
                 font-size: 0.9rem;
             }
+            
+            .btn-action {
+                width: 28px;
+                height: 28px;
+            }
         }
         
         /* Print Styles */
         @media print {
-            .sidebar, .navbar-custom, .btn-supply, .user-info .btn, .search-container {
+            .sidebar, .navbar-custom, .btn-supply, .user-info .btn, .search-container, .btn-action {
                 display: none;
             }
             
@@ -1218,7 +1433,9 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                                             <th>Kode</th>
                                             <th>Jumlah</th>
                                             <th>Supplier</th>
+                                            <th>Stok Terkini</th>
                                             <th>Status</th>
+                                            <th>Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1229,7 +1446,31 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                                             <td data-label="Kode"><span class="badge bg-secondary"><?php echo $supply['kode_barang']; ?></span></td>
                                             <td data-label="Jumlah"><span class="badge bg-primary"><?php echo $supply['jumlah']; ?> pcs</span></td>
                                             <td data-label="Supplier"><?php echo $supply['supplier'] ?? '-'; ?></td>
+                                            <td data-label="Stok Terkini"><span class="badge bg-info"><?php echo $supply['stok_terkini']; ?> pcs</span></td>
                                             <td data-label="Status"><span class="badge bg-success">Berhasil</span></td>
+                                            <td data-label="Aksi">
+                                                <button class="btn btn-sm btn-warning btn-action me-1" 
+                                                    onclick="openEditModal(
+                                                        <?= $supply['id_transaksi'] ?>,
+                                                        <?= $supply['id_barang'] ?>,
+                                                        '<?= htmlspecialchars($supply['nama_barang']) ?>',
+                                                        '<?= $supply['kode_barang'] ?>',
+                                                        <?= $supply['jumlah'] ?>,
+                                                        '<?= htmlspecialchars($supply['supplier']) ?>',
+                                                        '<?= htmlspecialchars($supply['keterangan']) ?>',
+                                                        <?= $supply['stok_terkini'] - $supply['jumlah'] ?>
+                                                    )"
+                                                    data-bs-toggle="tooltip" 
+                                                    title="Edit Supply">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-danger btn-action" 
+                                                    onclick="confirmDelete(<?= $supply['id_transaksi'] ?>, '<?= htmlspecialchars($supply['nama_barang']) ?>', <?= $supply['jumlah'] ?>)"
+                                                    data-bs-toggle="tooltip" 
+                                                    title="Hapus Supply">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
                                         </tr>
                                         <?php endforeach; ?>
                                     </tbody>
@@ -1263,7 +1504,7 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <!-- FORM DENGAN ACTION KE FILE YANG SAMA -->
+                <!-- FORM TAMBAH SUPPLY -->
                 <form id="formSupply" method="POST" action="">
                     <input type="hidden" name="action" value="add_supply">
                     <input type="hidden" name="id_barang" id="modalIdBarang">
@@ -1322,6 +1563,82 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
         </div>
     </div>
 
+    <!-- Modal Edit Supply -->
+    <div class="modal fade" id="modalEditSupply" tabindex="-1" aria-labelledby="modalEditSupplyLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title" id="modalEditSupplyLabel">
+                        <i class="bi bi-pencil-square me-2"></i> Edit Supply
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <!-- FORM EDIT SUPPLY -->
+                <form id="formEditSupply" method="POST" action="">
+                    <input type="hidden" name="action" value="edit_supply">
+                    <input type="hidden" name="id_transaksi" id="editIdTransaksi">
+                    <input type="hidden" name="id_barang" id="editIdBarang">
+                    
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Barang</label>
+                            <input type="text" class="form-control bg-light" id="editNamaBarang" readonly>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Kode Barang</label>
+                                <input type="text" class="form-control bg-light" id="editKodeBarang" readonly>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Stok Sebelum Supply</label>
+                                <input type="text" class="form-control bg-light" id="editStokSebelum" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Jumlah Supply <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control" name="jumlah" id="editJumlah" min="1" required placeholder="Masukkan jumlah">
+                            <div class="form-text" id="editJumlahHelp">Minimal 1 pcs</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Supplier <span class="text-danger">*</span></label>
+                            <select class="form-select" name="supplier" id="editSupplier" required>
+                                <option value="">Pilih Supplier</option>
+                                <option value="Supplier A">Supplier A</option>
+                                <option value="Supplier B">Supplier B</option>
+                                <option value="Supplier C">Supplier C</option>
+                                <option value="Supplier D">Supplier D</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Keterangan</label>
+                            <textarea class="form-control" name="keterangan" id="editKeterangan" rows="2" placeholder="Opsional"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle me-2 d-none d-sm-inline"></i> Batal
+                        </button>
+                        <button type="submit" class="btn btn-primary-custom" id="btnEditSupply">
+                            <i class="bi bi-save me-2"></i> Update Supply
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Hapus Supply (Hidden) -->
+    <form id="formDeleteSupply" method="POST" action="" style="display: none;">
+        <input type="hidden" name="action" value="delete_supply">
+        <input type="hidden" name="id_transaksi" id="deleteIdTransaksi">
+    </form>
+
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Sweet Alert JS -->
@@ -1366,6 +1683,12 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             // Update total barang counter
             const totalBarang = <?= $total_barang ?>;
             document.getElementById('totalBarang').textContent = totalBarang + ' barang';
+            
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
         });
         
         // Search Barang dengan debounce
@@ -1415,7 +1738,7 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             }, 300);
         });
         
-        // Modal Functions
+        // Modal Functions untuk Tambah Supply
         function openSupplyModal(id, nama, kode, stok) {
             document.getElementById('modalIdBarang').value = id;
             document.getElementById('modalNamaBarang').value = nama;
@@ -1425,18 +1748,43 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             document.getElementById('modalSupplier').value = '';
             document.getElementById('modalKeterangan').value = '';
             
+            // Simpan stok sebagai atribut data untuk validasi
+            document.getElementById('modalJumlah').setAttribute('data-stok', stok);
+            
             const modal = new bootstrap.Modal(document.getElementById('modalSupply'));
             modal.show();
         }
         
-        // Form Submission dengan validasi client-side menggunakan Sweet Alert
+        // Modal Functions untuk Edit Supply
+        function openEditModal(idTransaksi, idBarang, namaBarang, kodeBarang, jumlahLama, supplier, keterangan, stokSebelum) {
+            document.getElementById('editIdTransaksi').value = idTransaksi;
+            document.getElementById('editIdBarang').value = idBarang;
+            document.getElementById('editNamaBarang').value = namaBarang;
+            document.getElementById('editKodeBarang').value = kodeBarang;
+            document.getElementById('editStokSebelum').value = stokSebelum + ' pcs';
+            document.getElementById('editJumlah').value = jumlahLama;
+            document.getElementById('editSupplier').value = supplier;
+            document.getElementById('editKeterangan').value = keterangan || '';
+            
+            // Simpan data untuk validasi
+            document.getElementById('editJumlah').setAttribute('data-stok-sebelum', stokSebelum);
+            document.getElementById('editJumlah').setAttribute('data-jumlah-lama', jumlahLama);
+            
+            // Update help text
+            document.getElementById('editJumlahHelp').innerHTML = `Stok tersedia: ${stokSebelum} pcs. Maksimal supply: ${stokSebelum} pcs`;
+            
+            const modal = new bootstrap.Modal(document.getElementById('modalEditSupply'));
+            modal.show();
+        }
+        
+        // Form Submission Tambah Supply dengan validasi client-side
         document.getElementById('formSupply').addEventListener('submit', function(e) {
             e.preventDefault(); // Mencegah submit form langsung
             
-            const jumlah = document.getElementById('modalJumlah').value;
+            const jumlah = parseInt(document.getElementById('modalJumlah').value);
             const supplier = document.getElementById('modalSupplier').value;
             const namaBarang = document.getElementById('modalNamaBarang').value;
-            const stokSaatIni = document.getElementById('modalStokBarang').value;
+            const stokSaatIni = parseInt(document.getElementById('modalJumlah').getAttribute('data-stok'));
             
             // Validasi dengan Sweet Alert
             if (!jumlah || jumlah < 1) {
@@ -1461,6 +1809,26 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                 return false;
             }
             
+            // VALIDASI STOK: Cek apakah jumlah melebihi stok yang ada
+            if (jumlah > stokSaatIni) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Stok Tidak Mencukupi!',
+                    html: `
+                        <div style="text-align: left;">
+                            <p><strong>${namaBarang}</strong></p>
+                            <p>Stok tersedia: <span class="badge bg-danger">${stokSaatIni} pcs</span></p>
+                            <p>Jumlah supply: <span class="badge bg-warning">${jumlah} pcs</span></p>
+                            <hr>
+                            <p class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i> Jumlah supply melebihi stok yang tersedia!</p>
+                        </div>
+                    `,
+                    confirmButtonColor: '#f72585',
+                    confirmButtonText: 'Mengerti'
+                });
+                return false;
+            }
+            
             // Konfirmasi sebelum submit
             Swal.fire({
                 title: 'Konfirmasi Supply',
@@ -1480,8 +1848,12 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                                 <td style="padding: 5px 0;">${supplier}</td>
                             </tr>
                             <tr>
+                                <td style="padding: 5px 0;"><strong>Stok Saat Ini:</strong></td>
+                                <td style="padding: 5px 0;">${stokSaatIni} pcs</td>
+                            </tr>
+                            <tr>
                                 <td style="padding: 5px 0;"><strong>Stok Setelah Supply:</strong></td>
-                                <td style="padding: 5px 0;">${parseInt(stokSaatIni) + parseInt(jumlah)} pcs</td>
+                                <td style="padding: 5px 0;">${stokSaatIni + jumlah} pcs</td>
                             </tr>
                         </table>
                     </div>
@@ -1511,6 +1883,173 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                 }
             });
         });
+        
+        // Form Submission Edit Supply dengan validasi client-side
+        document.getElementById('formEditSupply').addEventListener('submit', function(e) {
+            e.preventDefault(); // Mencegah submit form langsung
+            
+            const jumlahBaru = parseInt(document.getElementById('editJumlah').value);
+            const supplier = document.getElementById('editSupplier').value;
+            const namaBarang = document.getElementById('editNamaBarang').value;
+            const stokSebelum = parseInt(document.getElementById('editJumlah').getAttribute('data-stok-sebelum'));
+            const jumlahLama = parseInt(document.getElementById('editJumlah').getAttribute('data-jumlah-lama'));
+            
+            // Validasi dengan Sweet Alert
+            if (!jumlahBaru || jumlahBaru < 1) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Jumlah Tidak Valid',
+                    text: 'Harap masukkan jumlah yang valid (minimal 1)',
+                    confirmButtonColor: '#4361ee',
+                    confirmButtonText: 'Mengerti'
+                });
+                return false;
+            }
+            
+            if (!supplier) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Supplier Belum Dipilih',
+                    text: 'Harap pilih supplier terlebih dahulu',
+                    confirmButtonColor: '#4361ee',
+                    confirmButtonText: 'Mengerti'
+                });
+                return false;
+            }
+            
+            // VALIDASI STOK: Cek apakah jumlah baru melebihi stok yang tersedia
+            if (jumlahBaru > stokSebelum) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Stok Tidak Mencukupi!',
+                    html: `
+                        <div style="text-align: left;">
+                            <p><strong>${namaBarang}</strong></p>
+                            <p>Stok tersedia: <span class="badge bg-danger">${stokSebelum} pcs</span></p>
+                            <p>Jumlah supply baru: <span class="badge bg-warning">${jumlahBaru} pcs</span></p>
+                            <hr>
+                            <p class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i> Jumlah supply baru melebihi stok yang tersedia!</p>
+                        </div>
+                    `,
+                    confirmButtonColor: '#f72585',
+                    confirmButtonText: 'Mengerti'
+                });
+                return false;
+            }
+            
+            // Hitung perubahan stok
+            const perubahanStok = jumlahBaru - jumlahLama;
+            const stokSetelahUpdate = stokSebelum + jumlahBaru;
+            
+            // Konfirmasi sebelum submit
+            Swal.fire({
+                title: 'Konfirmasi Edit Supply',
+                html: `
+                    <div style="text-align: left; max-height: 300px; overflow-y: auto;">
+                        <table style="width: 100%;">
+                            <tr>
+                                <td style="padding: 5px 0;"><strong>Barang:</strong></td>
+                                <td style="padding: 5px 0;">${namaBarang}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 0;"><strong>Jumlah Lama:</strong></td>
+                                <td style="padding: 5px 0;"><span class="badge bg-secondary">${jumlahLama} pcs</span></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 0;"><strong>Jumlah Baru:</strong></td>
+                                <td style="padding: 5px 0;"><span class="badge bg-primary">${jumlahBaru} pcs</span></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 0;"><strong>Perubahan:</strong></td>
+                                <td style="padding: 5px 0;">
+                                    <span class="badge ${perubahanStok > 0 ? 'bg-success' : 'bg-danger'}">
+                                        ${perubahanStok > 0 ? '+' : ''}${perubahanStok} pcs
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 0;"><strong>Supplier:</strong></td>
+                                <td style="padding: 5px 0;">${supplier}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 0;"><strong>Stok Setelah Update:</strong></td>
+                                <td style="padding: 5px 0;">${stokSetelahUpdate} pcs</td>
+                            </tr>
+                        </table>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#4cc9f0',
+                cancelButtonColor: '#f72585',
+                confirmButtonText: '<i class="bi bi-check-circle me-2"></i> Ya, Update!',
+                cancelButtonText: '<i class="bi bi-x-circle me-2"></i> Batal',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Tampilkan loading
+                    Swal.fire({
+                        title: 'Memproses...',
+                        html: 'Mohon tunggu sebentar',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Submit form setelah konfirmasi
+                    e.target.submit();
+                }
+            });
+        });
+        
+        // Fungsi Konfirmasi Hapus
+        function confirmDelete(idTransaksi, namaBarang, jumlah) {
+            Swal.fire({
+                title: 'Konfirmasi Hapus',
+                html: `
+                    <div style="text-align: left;">
+                        <p>Apakah Anda yakin ingin menghapus supply ini?</p>
+                        <table style="width: 100%;">
+                            <tr>
+                                <td style="padding: 5px 0;"><strong>Barang:</strong></td>
+                                <td style="padding: 5px 0;">${namaBarang}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 0;"><strong>Jumlah:</strong></td>
+                                <td style="padding: 5px 0;"><span class="badge bg-danger">${jumlah} pcs</span></td>
+                            </tr>
+                        </table>
+                        <p class="text-danger mt-2"><i class="bi bi-exclamation-triangle me-2"></i> Stok barang akan berkurang sebanyak ${jumlah} pcs!</p>
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#f72585',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="bi bi-trash me-2"></i> Ya, Hapus!',
+                cancelButtonText: '<i class="bi bi-x-circle me-2"></i> Batal',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Tampilkan loading
+                    Swal.fire({
+                        title: 'Menghapus...',
+                        html: 'Mohon tunggu sebentar',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Set id transaksi dan submit form hapus
+                    document.getElementById('deleteIdTransaksi').value = idTransaksi;
+                    document.getElementById('formDeleteSupply').submit();
+                }
+            });
+        }
         
         // Tampilkan pesan sukses/error dengan Sweet Alert
         <?php if (!empty($success_message)): ?>
@@ -1545,12 +2084,6 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             });
         });
         <?php endif; ?>
-        
-        // Initialize tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
         
         // Handle resize window
         let resizeTimer;

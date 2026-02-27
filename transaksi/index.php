@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     mysqli_begin_transaction($conn);
     
     try {
-        // 1. Tambah transaksi - PERBAIKI: HAPUS id_transaksi dari query
+        // 1. Tambah transaksi
         $query_insert = "
         INSERT INTO transaksi (id_barang, jumlah, supplier, keterangan, tanggal_transaksi, id_user, status)
         VALUES ('$id_barang', '$jumlah', '$supplier', '$keterangan', NOW(), '$id_user', 'masuk')
@@ -124,7 +124,7 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Transaksi Supply - Sistem Inventaris</title>
     
     <!-- Bootstrap 5 CSS -->
@@ -143,48 +143,293 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             --warning-color: #f8961e;
             --light-color: #f8f9fa;
             --dark-color: #212529;
+            --sidebar-width: 250px;
+            --sidebar-width-collapsed: 70px;
         }
         
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow-x: hidden;
+            background-color: #f5f7fb;
+        }
+        
+        /* Sidebar Styles */
         .sidebar {
             background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
             min-height: 100vh;
             color: white;
             position: fixed;
-            width: 250px;
+            width: var(--sidebar-width);
             z-index: 1000;
+            transition: all 0.3s ease;
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar.collapsed {
+            width: var(--sidebar-width-collapsed);
+        }
+        
+        .sidebar.collapsed .logo-container h4,
+        .sidebar.collapsed .logo-container small,
+        .sidebar.collapsed .nav-link-custom span,
+        .sidebar.collapsed .user-info .flex-grow-1,
+        .sidebar.collapsed .user-info .btn span {
+            display: none;
+        }
+        
+        .sidebar.collapsed .nav-link-custom {
+            text-align: center;
+            padding: 12px 0;
+            margin: 5px;
+        }
+        
+        .sidebar.collapsed .nav-link-custom i {
+            margin-right: 0;
+            font-size: 1.3rem;
+        }
+        
+        .sidebar.collapsed .user-info .d-flex {
+            justify-content: center;
+        }
+        
+        .sidebar.collapsed .user-info .ms-3 {
+            margin-left: 0 !important;
+        }
+        
+        .sidebar.collapsed .btn i {
+            margin-right: 0;
         }
         
         .main-content {
-            margin-left: 250px;
+            margin-left: var(--sidebar-width);
             background-color: #f5f7fb;
             min-height: 100vh;
+            transition: all 0.3s ease;
+            width: calc(100% - var(--sidebar-width));
         }
         
+        .main-content.expanded {
+            margin-left: var(--sidebar-width-collapsed);
+            width: calc(100% - var(--sidebar-width-collapsed));
+        }
+        
+        /* Logo Container */
+        .logo-container {
+            padding: 2rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .logo-container h4 {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+        }
+        
+        .logo-container small {
+            font-size: 0.75rem;
+            opacity: 0.9;
+            white-space: nowrap;
+        }
+        
+        /* Navigation Links */
+        .nav-link-custom {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            margin: 5px 10px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+        
+        .nav-link-custom:hover,
+        .nav-link-custom.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .nav-link-custom i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        
+        .nav-link-custom span {
+            font-size: 0.95rem;
+        }
+        
+        /* User Info */
+        .user-info {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding: 1rem;
+            margin-top: auto;
+        }
+        
+        .user-info h6 {
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+        }
+        
+        .user-info small {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            white-space: nowrap;
+        }
+        
+        .user-info .btn {
+            transition: all 0.3s ease;
+            border-color: rgba(255,255,255,0.3);
+            color: white;
+            white-space: nowrap;
+        }
+        
+        .user-info .btn:hover {
+            background-color: white;
+            color: var(--primary-color);
+            border-color: white;
+        }
+        
+        /* Navbar Custom */
         .navbar-custom {
             background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,.1);
-            padding: 1rem 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,.08);
+            padding: 0.75rem 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 999;
         }
         
+        .navbar-custom h4 {
+            font-size: 1.5rem;
+            margin-bottom: 0;
+            color: var(--dark-color);
+            white-space: nowrap;
+        }
+        
+        .navbar-custom h4 i {
+            color: var(--primary-color);
+        }
+        
+        /* Search Container */
+        .search-container {
+            position: relative;
+            max-width: 300px;
+            width: 100%;
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            z-index: 10;
+        }
+        
+        .search-input {
+            padding-left: 40px;
+            border-radius: 25px;
+            border: 1px solid #ddd;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+            border-color: var(--primary-color);
+        }
+        
+        /* Cards */
         .card {
             border: none;
             border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,.05);
-            transition: transform 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0,0,0,.03);
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
         }
         
         .card:hover {
-            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,.08);
         }
         
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid #eee;
+            padding: 1.25rem 1.5rem;
+            border-radius: 15px 15px 0 0 !important;
+        }
+        
+        .card-header h5 {
+            margin-bottom: 0;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+        
+        .card-header small {
+            font-size: 0.85rem;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        /* Stat Cards */
+        .stat-card {
+            border-left: 4px solid;
+            padding-left: 1.5rem;
+            height: 100%;
+        }
+        
+        .stat-card .card-body {
+            padding: 1.25rem;
+        }
+        
+        .stat-card.total-stok {
+            border-color: var(--primary-color);
+        }
+        
+        .stat-card.supply-hari-ini {
+            border-color: var(--success-color);
+        }
+        
+        .stat-card h6 {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-card h3 {
+            font-size: 1.75rem;
+            margin-bottom: 0;
+            font-weight: 600;
+        }
+        
+        /* Barang Cards */
         .card-roti {
             cursor: pointer;
             border-top: 4px solid var(--primary-color);
             transition: all 0.3s ease;
+            position: relative;
+            height: 100%;
+            overflow: hidden;
         }
         
         .card-roti:hover {
-            box-shadow: 0 8px 25px rgba(67, 97, 238, 0.15);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(67, 97, 238, 0.15);
         }
         
         .stok-badge {
@@ -194,11 +439,17 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             font-size: 0.8rem;
             padding: 5px 10px;
             border-radius: 20px;
+            z-index: 10;
         }
         
         .roti-icon {
             font-size: 3rem;
             color: var(--primary-color);
+            transition: all 0.3s ease;
+        }
+        
+        .card-roti:hover .roti-icon {
+            transform: scale(1.1);
         }
         
         .btn-supply {
@@ -214,138 +465,588 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             align-items: center;
             justify-content: center;
             box-shadow: 0 4px 10px rgba(76, 201, 240, 0.3);
+            transition: all 0.3s ease;
+            border: none;
         }
         
-        .stat-card {
-            border-left: 4px solid;
-            padding-left: 1.5rem;
+        .btn-supply:hover {
+            transform: translateX(-50%) scale(1.1);
+            background-color: var(--primary-color);
         }
         
-        .stat-card.total-stok {
-            border-color: var(--primary-color);
+        .btn-supply i {
+            font-size: 1.2rem;
         }
         
-        .stat-card.supply-hari-ini {
-            border-color: var(--success-color);
+        /* Table Styles */
+        .table {
+            margin-bottom: 0;
+            font-size: 0.95rem;
         }
         
-        .supply-item {
+        .table thead th {
+            background-color: var(--light-color);
+            color: var(--dark-color);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #dee2e6;
+            white-space: nowrap;
+        }
+        
+        .table tbody tr {
+            transition: all 0.2s ease;
             border-bottom: 1px solid #eee;
-            padding: 10px 0;
         }
         
-        .supply-item:last-child {
-            border-bottom: none;
+        .table tbody tr:hover {
+            background-color: rgba(67, 97, 238, 0.03);
         }
         
-        .search-container {
-            position: relative;
-            max-width: 300px;
+        .table td {
+            vertical-align: middle;
+            padding: 1rem 0.75rem;
         }
         
-        .search-icon {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
+        /* Badge Styles */
+        .badge {
+            padding: 0.5em 0.75em;
+            font-weight: 500;
+            font-size: 0.75rem;
+            border-radius: 6px;
         }
         
-        .search-input {
-            padding-left: 40px;
-            border-radius: 25px;
-            border: 1px solid #ddd;
+        .badge.bg-secondary {
+            background-color: #6c757d !important;
         }
         
+        .badge.bg-success {
+            background-color: #28a745 !important;
+        }
+        
+        .badge.bg-danger {
+            background-color: #dc3545 !important;
+        }
+        
+        .badge.bg-warning {
+            background-color: #ffc107 !important;
+            color: #212529;
+        }
+        
+        .badge.bg-primary {
+            background-color: var(--primary-color) !important;
+        }
+        
+        /* Button Custom */
         .btn-primary-custom {
             background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
             border: none;
             border-radius: 25px;
             padding: 8px 20px;
             color: white;
+            transition: all 0.3s ease;
         }
         
         .btn-primary-custom:hover {
             background: linear-gradient(45deg, var(--secondary-color), var(--primary-color));
             color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        /* Modal Styles */
+        .modal-content {
+            border: none;
+            border-radius: 15px;
+            overflow: hidden;
         }
         
         .modal-header-custom {
             background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
             color: white;
             border-radius: 15px 15px 0 0;
+            padding: 1.25rem;
         }
         
-        .logo-container {
-            padding: 2rem 1rem;
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+        .modal-header-custom .btn-close {
+            filter: brightness(0) invert(1);
         }
         
-        .nav-link-custom {
-            color: rgba(255,255,255,0.8);
-            padding: 12px 20px;
-            margin: 5px 10px;
-            border-radius: 10px;
-            transition: all 0.3s ease;
+        .modal-footer {
+            border-top: 1px solid #eee;
+            padding: 1.25rem;
         }
         
-        .nav-link-custom:hover,
-        .nav-link-custom.active {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
+        .supply-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+            transition: all 0.2s ease;
         }
         
-        .nav-link-custom i {
-            margin-right: 10px;
-            width: 20px;
-            text-align: center;
+        .supply-item:hover {
+            background-color: rgba(67, 97, 238, 0.02);
+            padding-left: 10px;
         }
         
-        .user-info {
-            border-top: 1px solid rgba(255,255,255,0.1);
-            padding: 1rem;
-            margin-top: auto;
+        .supply-item:last-child {
+            border-bottom: none;
+        }
+        
+        /* Responsive Breakpoints */
+        @media (max-width: 1200px) {
+            .stat-card h3 {
+                font-size: 1.5rem;
+            }
+            
+            .table {
+                font-size: 0.85rem;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .navbar-custom h4 {
+                font-size: 1.25rem;
+            }
+            
+            .search-container {
+                max-width: 250px;
+            }
+            
+            .card-body {
+                padding: 1.25rem;
+            }
         }
         
         @media (max-width: 768px) {
             .sidebar {
-                width: 0;
-                overflow: hidden;
+                transform: translateX(-100%);
+                box-shadow: none;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+                width: var(--sidebar-width);
+                box-shadow: 2px 0 20px rgba(0,0,0,0.2);
+            }
+            
+            .sidebar.active .logo-container h4,
+            .sidebar.active .logo-container small,
+            .sidebar.active .nav-link-custom span,
+            .sidebar.active .user-info .flex-grow-1,
+            .sidebar.active .user-info .btn span {
+                display: block;
+            }
+            
+            .sidebar.active .nav-link-custom {
+                text-align: left;
+                padding: 12px 20px;
+                margin: 5px 10px;
+            }
+            
+            .sidebar.active .nav-link-custom i {
+                margin-right: 10px;
+                font-size: 1.1rem;
+            }
+            
+            .sidebar.active .user-info .d-flex {
+                justify-content: flex-start;
+            }
+            
+            .sidebar.active .user-info .ms-3 {
+                margin-left: 1rem !important;
             }
             
             .main-content {
                 margin-left: 0;
+                width: 100%;
             }
             
-            .sidebar.active {
-                width: 250px;
+            .main-content.expanded {
+                margin-left: 0;
+                width: 100%;
             }
+            
+            .navbar-custom {
+                padding: 0.75rem 1rem;
+            }
+            
+            .navbar-custom h4 {
+                font-size: 1.1rem;
+                margin-right: 1rem;
+            }
+            
+            .navbar-custom .container-fluid {
+                flex-wrap: wrap;
+            }
+            
+            .search-container {
+                max-width: 100%;
+                margin: 0.5rem 0 0 0 !important;
+            }
+            
+            .container-fluid.p-4 {
+                padding: 1rem !important;
+            }
+            
+            .row.mb-4 {
+                margin-bottom: 0.5rem !important;
+            }
+            
+            .col-xl-3.col-md-6.mb-4 {
+                margin-bottom: 0.75rem !important;
+            }
+            
+            .stat-card {
+                padding-left: 1rem;
+            }
+            
+            .stat-card h3 {
+                font-size: 1.25rem;
+            }
+            
+            .stat-card i {
+                font-size: 2rem !important;
+            }
+            
+            .card-header {
+                padding: 1rem;
+            }
+            
+            .card-header h5 {
+                font-size: 1.1rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+            
+            /* Transform table for mobile */
+            .table-responsive {
+                border: none;
+                margin: 0 -0.5rem;
+            }
+            
+            .table thead {
+                display: none;
+            }
+            
+            .table, .table tbody, .table tr, .table td {
+                display: block;
+                width: 100%;
+            }
+            
+            .table tr {
+                margin-bottom: 0.75rem;
+                border: 1px solid #dee2e6;
+                border-radius: 10px;
+                background-color: white;
+                padding: 0.75rem;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            }
+            
+            .table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.5rem 0;
+                border: none;
+                border-bottom: 1px solid #eee;
+                font-size: 0.9rem;
+            }
+            
+            .table td:last-child {
+                border-bottom: none;
+            }
+            
+            .table td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: var(--dark-color);
+                font-size: 0.85rem;
+                margin-right: 1rem;
+                min-width: 80px;
+            }
+            
+            .table td[data-label="Waktu"]::before { content: "Waktu"; }
+            .table td[data-label="Barang"]::before { content: "Barang"; }
+            .table td[data-label="Kode"]::before { content: "Kode"; }
+            .table td[data-label="Jumlah"]::before { content: "Jumlah"; }
+            .table td[data-label="Supplier"]::before { content: "Supplier"; }
+            .table td[data-label="Status"]::before { content: "Status"; }
+        }
+        
+        @media (max-width: 576px) {
+            .navbar-custom {
+                padding: 0.5rem 0.75rem;
+            }
+            
+            .navbar-custom .btn {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.9rem;
+            }
+            
+            .navbar-custom h4 {
+                font-size: 1rem;
+            }
+            
+            .search-container {
+                margin-top: 0.5rem;
+            }
+            
+            .search-input {
+                padding-left: 35px;
+                font-size: 0.9rem;
+                height: 38px;
+            }
+            
+            .search-icon {
+                left: 12px;
+                font-size: 0.9rem;
+            }
+            
+            .container-fluid.p-4 {
+                padding: 0.75rem !important;
+            }
+            
+            .stat-card .card-body {
+                padding: 1rem;
+            }
+            
+            .stat-card h6 {
+                font-size: 0.8rem;
+            }
+            
+            .stat-card h3 {
+                font-size: 1.1rem;
+            }
+            
+            .stat-card i {
+                font-size: 1.75rem !important;
+            }
+            
+            .col-xl-3.col-lg-4.col-md-6 {
+                padding: 0 0.5rem;
+            }
+            
+            .card-roti .card-body {
+                padding: 1rem 0.75rem;
+            }
+            
+            .roti-icon {
+                font-size: 2.5rem;
+            }
+            
+            .card-roti h6 {
+                font-size: 0.95rem;
+            }
+            
+            .card-roti small {
+                font-size: 0.75rem;
+            }
+            
+            .card-roti p {
+                font-size: 0.9rem;
+            }
+            
+            .btn-supply {
+                width: 35px;
+                height: 35px;
+                bottom: -12px;
+            }
+            
+            .btn-supply i {
+                font-size: 1rem;
+            }
+            
+            .modal-dialog {
+                margin: 0.5rem;
+            }
+            
+            .modal-header-custom {
+                padding: 1rem;
+            }
+            
+            .modal-header-custom h5 {
+                font-size: 1.1rem;
+            }
+            
+            .modal-body {
+                padding: 1rem;
+            }
+            
+            .modal-footer {
+                padding: 1rem;
+            }
+            
+            .modal-footer .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+        
+        /* Print Styles */
+        @media print {
+            .sidebar, .navbar-custom, .btn-supply, .user-info .btn, .search-container {
+                display: none;
+            }
+            
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            
+            .card {
+                box-shadow: none;
+                border: 1px solid #ddd;
+                break-inside: avoid;
+            }
+            
+            .table td::before {
+                display: none;
+            }
+            
+            .badge {
+                border: 1px solid #000;
+                color: #000 !important;
+                background: transparent !important;
+            }
+        }
+        
+        /* Loading Animation */
+        .swal2-loading {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary-color);
+        }
+        
+        /* Animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .card {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        /* Hover Effects */
+        .btn-close-white:hover {
+            opacity: 1;
+            transform: rotate(90deg);
+            transition: all 0.3s ease;
+        }
+        
+        .badge {
+            transition: all 0.2s ease;
+        }
+        
+        .badge:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Form Focus States */
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            color: #ddd;
+            margin-bottom: 1rem;
+        }
+        
+        .empty-state p {
+            color: #6c757d;
+            margin-bottom: 0;
+        }
+        
+        /* Utility Classes */
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        
+        .hover-scale {
+            transition: transform 0.2s ease;
+        }
+        
+        .hover-scale:hover {
+            transform: scale(1.05);
+        }
+        
+        .text-truncate-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
     </style>
 </head>
 <body>
     <div class="d-flex">
         <!-- Sidebar -->
-        <div class="sidebar d-flex flex-column">
+        <div class="sidebar d-flex flex-column" id="sidebar">
             <div class="logo-container">
-                <h4 class="mb-0"><i class="bi bi-box-seam"></i> Inventaris Roti</h4>
-                <small class="text-light">Supply Management</small>
+                <h4 class="mb-0"><i class="bi bi-box-seam"></i> <span>Inventaris Roti</span></h4>
+                <small class="text-light"><span>Supply Management</span></small>
             </div>
-          <nav class="nav flex-column mt-3">
-    <a href="../dashboard.php" class="nav-link-custom">
-        <i class="bi bi-speedometer2"></i> Dashboard
-    </a>
-    <a href="../barang/" class="nav-link-custom">
-        <i class="bi bi-box"></i> Data Barang
-    </a>
-    <a href="../transaksi/" class="nav-link-custom active">
-        <i class="bi bi-arrow-left-right"></i> Transaksi
-    </a>
-    <a href="../laporan/laporan.php" class="nav-link-custom">
-        <i class="bi bi-file-text"></i> Laporan
-    </a>
-</nav>
+            
+            <nav class="nav flex-column mt-3">
+                <a href="../dashboard.php" class="nav-link-custom">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="../barang/" class="nav-link-custom">
+                    <i class="bi bi-box"></i>
+                    <span>Data Barang</span>
+                </a>
+                <a href="../transaksi/" class="nav-link-custom active">
+                    <i class="bi bi-arrow-left-right"></i>
+                    <span>Transaksi</span>
+                </a>
+                <a href="../laporan/laporan.php" class="nav-link-custom">
+                    <i class="bi bi-file-text"></i>
+                    <span>Laporan</span>
+                </a>
+            </nav>
             
             <div class="user-info mt-auto">
                 <div class="d-flex align-items-center">
@@ -358,32 +1059,36 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                     </div>
                 </div>
                 <a href="../auth/logout.php" class="btn btn-outline-light btn-sm w-100 mt-2">
-                    <i class="bi bi-box-arrow-right"></i> Logout
+                    <i class="bi bi-box-arrow-right"></i> <span>Logout</span>
                 </a>
             </div>
         </div>
         
         <!-- Main Content -->
-        <div class="main-content flex-grow-1">
+        <div class="main-content flex-grow-1" id="mainContent">
             <!-- Top Navbar -->
             <nav class="navbar navbar-custom">
                 <div class="container-fluid">
-                    <button class="btn btn-outline-primary d-md-none" id="sidebarToggle">
-                        <i class="bi bi-list"></i>
-                    </button>
-                    
-                    <div class="d-flex align-items-center w-100">
-                        <h4 class="mb-0 me-3 d-none d-md-block">
-                            <i class="bi bi-arrow-left-right text-primary"></i> Transaksi Supply
+                    <div class="d-flex align-items-center w-100 flex-wrap flex-md-nowrap">
+                        <!-- Sidebar Toggle Buttons -->
+                        <button class="btn btn-outline-primary me-3 d-none d-md-block" id="sidebarCollapse">
+                            <i class="bi bi-layout-sidebar"></i>
+                        </button>
+                        <button class="btn btn-outline-primary d-md-none me-3" id="sidebarToggle">
+                            <i class="bi bi-list"></i>
+                        </button>
+                        
+                        <h4 class="mb-0 me-auto">
+                            <i class="bi bi-arrow-left-right text-primary"></i> <span class="d-none d-sm-inline">Transaksi</span> Supply
                         </h4>
                         
-                        <div class="search-container me-auto">
+                        <div class="search-container me-auto ms-3 ms-md-3">
                             <i class="bi bi-search search-icon"></i>
                             <input type="text" class="form-control search-input" id="searchBarang" placeholder="Cari barang...">
                         </div>
                         
                         <div class="d-flex align-items-center">
-                            <span class="me-3 d-none d-md-block">
+                            <span class="ms-3 d-none d-lg-block text-muted">
                                 <i class="bi bi-calendar-check"></i> <?php echo date('d F Y'); ?>
                             </span>
                         </div>
@@ -394,14 +1099,14 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             <!-- Content -->
             <div class="container-fluid p-4">
                 <!-- Statistik Cards -->
-                <div class="row mb-4">
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card stat-card total-stok">
+                <div class="row mb-4 g-3">
+                    <div class="col-xl-6 col-md-6">
+                        <div class="card stat-card total-stok h-100">
                             <div class="card-body">
-                                <div class="d-flex justify-content-between">
+                                <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="text-muted mb-2">Total Stok</h6>
-                                        <h3 class="mb-0"><?php echo number_format($total_stok); ?> pcs</h3>
+                                        <h3 class="mb-0"><?php echo number_format($total_stok); ?> <small class="text-muted fs-6">pcs</small></h3>
                                     </div>
                                     <div class="align-self-center">
                                         <i class="bi bi-box-seam" style="font-size: 2.5rem; color: var(--primary-color);"></i>
@@ -411,13 +1116,13 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                         </div>
                     </div>
                     
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card stat-card supply-hari-ini">
+                    <div class="col-xl-6 col-md-6">
+                        <div class="card stat-card supply-hari-ini h-100">
                             <div class="card-body">
-                                <div class="d-flex justify-content-between">
+                                <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="text-muted mb-2">Supply Hari Ini</h6>
-                                        <h3 class="mb-0"><?php echo number_format($total_supply_hari_ini); ?> pcs</h3>
+                                        <h3 class="mb-0"><?php echo number_format($total_supply_hari_ini); ?> <small class="text-muted fs-6">pcs</small></h3>
                                     </div>
                                     <div class="align-self-center">
                                         <i class="bi bi-arrow-down-circle" style="font-size: 2.5rem; color: var(--success-color);"></i>
@@ -430,19 +1135,23 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                 
                 <!-- Daftar Barang -->
                 <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-box me-2"></i> Daftar Barang</h5>
-                        <small class="text-muted">Klik barang untuk melakukan transaksi supply</small>
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0"><i class="bi bi-box me-2"></i> Daftar Barang</h5>
+                            <small class="text-muted">Klik barang atau tombol (+) untuk melakukan supply</small>
+                        </div>
+                        <span class="badge bg-primary mt-2 mt-sm-0" id="totalBarang"></span>
                     </div>
                     <div class="card-body">
-                        <div class="row" id="barangContainer">
+                        <div class="row g-3" id="barangContainer">
                             <?php 
                             // Reset pointer result untuk digunakan kembali
                             mysqli_data_seek($result, 0);
+                            $total_barang = mysqli_num_rows($result);
                             while ($barang = mysqli_fetch_assoc($result)): 
                             ?>
-                            <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-                                <div class="card card-roti h-100"
+                            <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
+                                <div class="card card-roti h-100 position-relative"
                                     data-nama="<?= strtolower($barang['nama_barang']) ?>"
                                     onclick="openSupplyModal(
                                         <?= $barang['id_barang'] ?>,
@@ -450,7 +1159,6 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                                         '<?= $barang['kode_barang'] ?>',
                                         <?= $barang['stok_barang'] ?>
                                     )">
-
                                     <div class="card-body text-center position-relative">
                                         <span class="badge stok-badge 
                                             <?= $barang['stok_barang'] < 10 ? 'bg-danger' : ($barang['stok_barang'] < 20 ? 'bg-warning' : 'bg-success') ?>">
@@ -459,10 +1167,10 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
 
                                         <i class="bi bi-bread-slice roti-icon mb-3"></i>
 
-                                        <h6 class="fw-bold"><?= htmlspecialchars($barang['nama_barang']) ?></h6>
+                                        <h6 class="fw-bold text-truncate"><?= htmlspecialchars($barang['nama_barang']) ?></h6>
                                         <small class="text-muted"><?= $barang['kode_barang'] ?></small>
 
-                                        <p class="fw-bold text-primary mt-2">
+                                        <p class="fw-bold text-primary mt-2 mb-0">
                                             Rp <?= number_format($barang['harga_jual'], 0, ',', '.') ?>
                                         </p>
 
@@ -480,13 +1188,24 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                             </div>
                             <?php endwhile; ?>
                         </div>
+                        
+                        <?php if ($total_barang == 0): ?>
+                        <div class="empty-state">
+                            <i class="bi bi-box"></i>
+                            <p class="text-muted">Belum ada barang tersedia</p>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
                 
                 <!-- Supply Hari Ini -->
                 <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-calendar-day me-2"></i> Supply Hari Ini</h5>
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0"><i class="bi bi-calendar-day me-2"></i> Supply Hari Ini</h5>
+                            <small class="text-muted"><?php echo date('d F Y'); ?></small>
+                        </div>
+                        <span class="badge bg-primary mt-2 mt-sm-0"><?= count($supply_hari_ini) ?> transaksi</span>
                     </div>
                     <div class="card-body">
                         <?php if (count($supply_hari_ini) > 0): ?>
@@ -505,21 +1224,27 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                                     <tbody>
                                         <?php foreach ($supply_hari_ini as $supply): ?>
                                         <tr>
-                                            <td><?php echo date('H:i', strtotime($supply['tanggal_transaksi'])); ?></td>
-                                            <td><?php echo htmlspecialchars($supply['nama_barang']); ?></td>
-                                            <td><span class="badge bg-secondary"><?php echo $supply['kode_barang']; ?></span></td>
-                                            <td><span class="badge bg-primary"><?php echo $supply['jumlah']; ?> pcs</span></td>
-                                            <td><?php echo $supply['supplier'] ?? '-'; ?></td>
-                                            <td><span class="badge bg-success">Berhasil</span></td>
+                                            <td data-label="Waktu"><?php echo date('H:i', strtotime($supply['tanggal_transaksi'])); ?></td>
+                                            <td data-label="Barang" class="fw-bold"><?php echo htmlspecialchars($supply['nama_barang']); ?></td>
+                                            <td data-label="Kode"><span class="badge bg-secondary"><?php echo $supply['kode_barang']; ?></span></td>
+                                            <td data-label="Jumlah"><span class="badge bg-primary"><?php echo $supply['jumlah']; ?> pcs</span></td>
+                                            <td data-label="Supplier"><?php echo $supply['supplier'] ?? '-'; ?></td>
+                                            <td data-label="Status"><span class="badge bg-success">Berhasil</span></td>
                                         </tr>
                                         <?php endforeach; ?>
                                     </tbody>
                                 </table>
                             </div>
+                            
+                            <!-- Total info untuk mobile -->
+                            <div class="d-block d-md-none mt-3 text-muted small">
+                                <i class="bi bi-info-circle"></i> Total: <?= $total_supply_hari_ini ?> pcs dari <?= count($supply_hari_ini) ?> transaksi
+                            </div>
                         <?php else: ?>
-                            <div class="text-center py-4">
-                                <i class="bi bi-inbox" style="font-size: 3rem; color: #ddd;"></i>
+                            <div class="empty-state">
+                                <i class="bi bi-inbox"></i>
                                 <p class="text-muted mt-2">Belum ada supply hari ini</p>
+                                <small class="text-muted">Klik tombol (+) pada barang untuk menambah supply</small>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -529,12 +1254,14 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
     </div>
     
     <!-- Modal Supply Barang -->
-    <div class="modal fade" id="modalSupply" tabindex="-1">
-        <div class="modal-dialog">
+    <div class="modal fade" id="modalSupply" tabindex="-1" aria-labelledby="modalSupplyLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i> Supply Barang</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title" id="modalSupplyLabel">
+                        <i class="bi bi-plus-circle me-2"></i> Supply Barang
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <!-- FORM DENGAN ACTION KE FILE YANG SAMA -->
                 <form id="formSupply" method="POST" action="">
@@ -543,44 +1270,49 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                     
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label">Barang</label>
-                            <input type="text" class="form-control" id="modalNamaBarang" readonly>
+                            <label class="form-label fw-bold">Barang</label>
+                            <input type="text" class="form-control bg-light" id="modalNamaBarang" readonly>
                         </div>
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Kode Barang</label>
-                                <input type="text" class="form-control" id="modalKodeBarang" readonly>
+                                <label class="form-label fw-bold">Kode Barang</label>
+                                <input type="text" class="form-control bg-light" id="modalKodeBarang" readonly>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Stok Saat Ini</label>
-                                <input type="text" class="form-control" id="modalStokBarang" readonly>
+                                <label class="form-label fw-bold">Stok Saat Ini</label>
+                                <input type="text" class="form-control bg-light" id="modalStokBarang" readonly>
                             </div>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Jumlah Supply <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" name="jumlah" id="modalJumlah" min="1" required>
-                            <div class="form-text">Masukkan jumlah barang yang akan ditambahkan</div>
+                            <label class="form-label fw-bold">
+                                Jumlah Supply <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control" name="jumlah" id="modalJumlah" min="1" required placeholder="Masukkan jumlah">
+                            <div class="form-text">Minimal 1 pcs</div>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Supplier</label>
+                            <label class="form-label fw-bold">Supplier <span class="text-danger">*</span></label>
                             <select class="form-select" name="supplier" id="modalSupplier" required>
                                 <option value="">Pilih Supplier</option>
                                 <option value="Supplier A">Supplier A</option>
                                 <option value="Supplier B">Supplier B</option>
                                 <option value="Supplier C">Supplier C</option>
+                                <option value="Supplier D">Supplier D</option>
                             </select>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Keterangan</label>
-                            <textarea class="form-control" name="keterangan" id="modalKeterangan" rows="2"></textarea>
+                            <label class="form-label fw-bold">Keterangan</label>
+                            <textarea class="form-control" name="keterangan" id="modalKeterangan" rows="2" placeholder="Opsional"></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle me-2 d-none d-sm-inline"></i> Batal
+                        </button>
                         <button type="submit" class="btn btn-primary-custom" id="btnSubmitSupply">
                             <i class="bi bi-save me-2"></i> Simpan Supply
                         </button>
@@ -596,24 +1328,91 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script>
-        // Toggle Sidebar on Mobile
-        document.getElementById('sidebarToggle').addEventListener('click', function() {
+        // Sidebar Collapse untuk Desktop
+        document.getElementById('sidebarCollapse')?.addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('collapsed');
+            document.getElementById('mainContent').classList.toggle('expanded');
+            
+            // Simpan status sidebar di localStorage
+            const isCollapsed = document.querySelector('.sidebar').classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
+        });
+
+        // Sidebar Toggle untuk Mobile
+        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
             document.querySelector('.sidebar').classList.toggle('active');
         });
-        
-        // Search Barang
-        document.getElementById('searchBarang').addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const barangCards = document.querySelectorAll('.card-roti');
+
+        // Tutup sidebar saat klik di luar untuk mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggle = document.getElementById('sidebarToggle');
             
-            barangCards.forEach(card => {
-                const namaBarang = card.getAttribute('data-nama');
-                if (namaBarang.includes(searchTerm)) {
-                    card.closest('.col-xl-3').style.display = 'block';
-                } else {
-                    card.closest('.col-xl-3').style.display = 'none';
+            if (window.innerWidth <= 768) {
+                if (!sidebar.contains(event.target) && !toggle.contains(event.target)) {
+                    sidebar.classList.remove('active');
                 }
-            });
+            }
+        });
+
+        // Cek status sidebar dari localStorage
+        document.addEventListener('DOMContentLoaded', function() {
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed && window.innerWidth > 768) {
+                document.querySelector('.sidebar').classList.add('collapsed');
+                document.getElementById('mainContent').classList.add('expanded');
+            }
+            
+            // Update total barang counter
+            const totalBarang = <?= $total_barang ?>;
+            document.getElementById('totalBarang').textContent = totalBarang + ' barang';
+        });
+        
+        // Search Barang dengan debounce
+        let searchTimeout;
+        document.getElementById('searchBarang').addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            const searchTerm = e.target.value.toLowerCase().trim();
+            
+            searchTimeout = setTimeout(() => {
+                const barangCards = document.querySelectorAll('.card-roti');
+                let visibleCount = 0;
+                
+                barangCards.forEach(card => {
+                    const namaBarang = card.getAttribute('data-nama');
+                    const parentCol = card.closest('.col-xl-3, .col-lg-4, .col-md-6, .col-sm-6');
+                    
+                    if (namaBarang.includes(searchTerm) || searchTerm === '') {
+                        parentCol.style.display = 'block';
+                        visibleCount++;
+                    } else {
+                        parentCol.style.display = 'none';
+                    }
+                });
+                
+                // Update total visible
+                document.getElementById('totalBarang').textContent = visibleCount + ' barang ditemukan';
+                
+                // Tampilkan pesan jika tidak ada hasil
+                if (visibleCount === 0 && searchTerm !== '') {
+                    const container = document.getElementById('barangContainer');
+                    let noResult = document.getElementById('noSearchResult');
+                    
+                    if (!noResult) {
+                        noResult = document.createElement('div');
+                        noResult.id = 'noSearchResult';
+                        noResult.className = 'col-12 text-center py-5';
+                        noResult.innerHTML = `
+                            <i class="bi bi-search" style="font-size: 3rem; color: #ddd;"></i>
+                            <p class="text-muted mt-3">Tidak ada barang dengan nama "${searchTerm}"</p>
+                        `;
+                        container.appendChild(noResult);
+                    }
+                } else {
+                    const noResult = document.getElementById('noSearchResult');
+                    if (noResult) noResult.remove();
+                }
+            }, 300);
         });
         
         // Modal Functions
@@ -637,6 +1436,7 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             const jumlah = document.getElementById('modalJumlah').value;
             const supplier = document.getElementById('modalSupplier').value;
             const namaBarang = document.getElementById('modalNamaBarang').value;
+            const stokSaatIni = document.getElementById('modalStokBarang').value;
             
             // Validasi dengan Sweet Alert
             if (!jumlah || jumlah < 1) {
@@ -644,7 +1444,8 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                     icon: 'warning',
                     title: 'Jumlah Tidak Valid',
                     text: 'Harap masukkan jumlah yang valid (minimal 1)',
-                    confirmButtonColor: '#4361ee'
+                    confirmButtonColor: '#4361ee',
+                    confirmButtonText: 'Mengerti'
                 });
                 return false;
             }
@@ -654,7 +1455,8 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                     icon: 'warning',
                     title: 'Supplier Belum Dipilih',
                     text: 'Harap pilih supplier terlebih dahulu',
-                    confirmButtonColor: '#4361ee'
+                    confirmButtonColor: '#4361ee',
+                    confirmButtonText: 'Mengerti'
                 });
                 return false;
             }
@@ -663,18 +1465,34 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
             Swal.fire({
                 title: 'Konfirmasi Supply',
                 html: `
-                    <div style="text-align: left">
-                        <p><strong>Barang:</strong> ${namaBarang}</p>
-                        <p><strong>Jumlah:</strong> ${jumlah} pcs</p>
-                        <p><strong>Supplier:</strong> ${supplier}</p>
+                    <div style="text-align: left; max-height: 300px; overflow-y: auto;">
+                        <table style="width: 100%;">
+                            <tr>
+                                <td style="padding: 5px 0;"><strong>Barang:</strong></td>
+                                <td style="padding: 5px 0;">${namaBarang}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 0;"><strong>Jumlah:</strong></td>
+                                <td style="padding: 5px 0;"><span class="badge bg-primary">${jumlah} pcs</span></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 0;"><strong>Supplier:</strong></td>
+                                <td style="padding: 5px 0;">${supplier}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 0;"><strong>Stok Setelah Supply:</strong></td>
+                                <td style="padding: 5px 0;">${parseInt(stokSaatIni) + parseInt(jumlah)} pcs</td>
+                            </tr>
+                        </table>
                     </div>
                 `,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#4cc9f0',
                 cancelButtonColor: '#f72585',
-                confirmButtonText: 'Ya, Supply!',
-                cancelButtonText: 'Batal'
+                confirmButtonText: '<i class="bi bi-check-circle me-2"></i> Ya, Supply!',
+                cancelButtonText: '<i class="bi bi-x-circle me-2"></i> Batal',
+                reverseButtons: true
             }).then((result) => {
                 if (result.isConfirmed) {
                     // Tampilkan loading
@@ -682,6 +1500,7 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                         title: 'Memproses...',
                         html: 'Mohon tunggu sebentar',
                         allowOutsideClick: false,
+                        showConfirmButton: false,
                         didOpen: () => {
                             Swal.showLoading();
                         }
@@ -703,7 +1522,13 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                 showConfirmButton: true,
                 confirmButtonColor: '#4cc9f0',
                 timer: 3000,
-                timerProgressBar: true
+                timerProgressBar: true,
+                toast: true,
+                position: 'top-end',
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
             });
         });
         <?php endif; ?>
@@ -715,7 +1540,8 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                 title: 'Gagal!',
                 text: '<?php echo addslashes($error_message); ?>',
                 showConfirmButton: true,
-                confirmButtonColor: '#f72585'
+                confirmButtonColor: '#f72585',
+                confirmButtonText: 'Mengerti'
             });
         });
         <?php endif; ?>
@@ -725,6 +1551,71 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
+        
+        // Handle resize window
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                const sidebar = document.querySelector('.sidebar');
+                const isMobile = window.innerWidth <= 768;
+                
+                if (isMobile) {
+                    sidebar.classList.remove('collapsed');
+                    document.getElementById('mainContent').classList.remove('expanded');
+                } else {
+                    const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+                    if (isCollapsed) {
+                        sidebar.classList.add('collapsed');
+                        document.getElementById('mainContent').classList.add('expanded');
+                    }
+                }
+            }, 250);
+        });
+        
+        // Auto close alerts
+        setTimeout(function() {
+            document.querySelectorAll('.alert').forEach(alert => {
+                if (alert) {
+                    alert.style.transition = 'opacity 0.5s';
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 500);
+                }
+            });
+        }, 5000);
+        
+        // Keyboard shortcut untuk refresh (Ctrl+R)
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Memuat ulang...',
+                    text: 'Harap tunggu sebentar',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    }
+                });
+            }
+        });
+        
+        // Touch events untuk mobile
+        if ('ontouchstart' in window) {
+            document.querySelectorAll('.card-roti').forEach(card => {
+                card.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.98)';
+                });
+                
+                card.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                });
+            });
+        }
     </script>
 </body>
 </html>

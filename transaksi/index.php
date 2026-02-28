@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             // 1. Tambah transaksi
             $query_insert = "
             INSERT INTO transaksi (id_barang, jumlah, supplier, keterangan, tanggal_transaksi, id_user, status)
-            VALUES ('$id_barang', '$jumlah', '$supplier', '$keterangan', NOW(), '$id_user', 'masuk')
+            VALUES ('$id_barang', '$jumlah', '$supplier', '$keterangan', NOW(), '$id_user', 'terkirim')
             ";
             
             if (!mysqli_query($conn, $query_insert)) {
@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $id_user = $_SESSION['user_id'];
     
     // Ambil data transaksi lama
-    $query_transaksi_lama = "SELECT * FROM transaksi WHERE id_transaksi = '$id_transaksi' AND status = 'masuk'";
+    $query_transaksi_lama = "SELECT * FROM transaksi WHERE id_transaksi = '$id_transaksi' AND status = 'terkirim'";
     $result_transaksi_lama = mysqli_query($conn, $query_transaksi_lama);
     $transaksi_lama = mysqli_fetch_assoc($result_transaksi_lama);
     
@@ -176,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $id_transaksi = mysqli_real_escape_string($conn, $_POST['id_transaksi']);
     
     // Ambil data transaksi yang akan dihapus
-    $query_transaksi = "SELECT t.*, b.nama_barang FROM transaksi t JOIN barang b ON t.id_barang = b.id_barang WHERE t.id_transaksi = '$id_transaksi' AND t.status = 'masuk'";
+    $query_transaksi = "SELECT t.*, b.nama_barang FROM transaksi t JOIN barang b ON t.id_barang = b.id_barang WHERE t.id_transaksi = '$id_transaksi' AND t.status = 'terkirim'";
     $result_transaksi = mysqli_query($conn, $query_transaksi);
     $transaksi = mysqli_fetch_assoc($result_transaksi);
     
@@ -250,7 +250,7 @@ SELECT
 FROM transaksi t
 JOIN barang b ON t.id_barang = b.id_barang
 WHERE DATE(t.tanggal_transaksi) = CURDATE()
-AND t.status = 'masuk'
+AND t.status = 'terkirim'
 ORDER BY t.tanggal_transaksi DESC
 ";
 
@@ -273,7 +273,7 @@ $total_stok = mysqli_fetch_assoc($result_total_stok)['total_stok'] ?? 0;
 $query_chart = "
 SELECT DATE(tanggal_transaksi) AS tanggal, SUM(jumlah) AS total
 FROM transaksi
-WHERE status = 'masuk'
+WHERE status = 'terkirim'
 AND tanggal_transaksi >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
 GROUP BY DATE(tanggal_transaksi)
 ORDER BY tanggal

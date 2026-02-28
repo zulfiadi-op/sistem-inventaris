@@ -77,9 +77,9 @@ SELECT
     AVG(t.jumlah) as rata_rata_barang,
     MAX(t.jumlah) as maks_barang,
     MIN(t.jumlah) as min_barang,
-    SUM(CASE WHEN LOWER(t.status) = 'masuk' OR LOWER(t.status) = 'in' OR LOWER(t.status) = 'berhasil' THEN 1 ELSE 0 END) as total_masuk,
+    SUM(CASE WHEN LOWER(t.status) = 'terkirim' OR LOWER(t.status) = 'in' OR LOWER(t.status) = 'berhasil' THEN 1 ELSE 0 END) as total_terkirim,
     SUM(CASE WHEN LOWER(t.status) = 'keluar' OR LOWER(t.status) = 'out' THEN 1 ELSE 0 END) as total_keluar,
-    SUM(CASE WHEN LOWER(t.status) = 'masuk' OR LOWER(t.status) = 'in' OR LOWER(t.status) = 'berhasil' THEN t.jumlah ELSE 0 END) as total_barang_masuk,
+    SUM(CASE WHEN LOWER(t.status) = 'terkirim' OR LOWER(t.status) = 'in' OR LOWER(t.status) = 'berhasil' THEN t.jumlah ELSE 0 END) as total_barang_terkirim,
     SUM(CASE WHEN LOWER(t.status) = 'keluar' OR LOWER(t.status) = 'out' THEN t.jumlah ELSE 0 END) as total_barang_keluar
 FROM transaksi t
 WHERE t.supplier IS NOT NULL 
@@ -133,7 +133,7 @@ SELECT
     b.kode_barang,
     COUNT(t.id_transaksi) as frekuensi,
     SUM(t.jumlah) as total_barang,
-    SUM(CASE WHEN LOWER(t.status) = 'masuk' OR LOWER(t.status) = 'in' OR LOWER(t.status) = 'berhasil' THEN t.jumlah ELSE 0 END) as total_masuk,
+    SUM(CASE WHEN LOWER(t.status) = 'terkirim' OR LOWER(t.status) = 'in' OR LOWER(t.status) = 'berhasil' THEN t.jumlah ELSE 0 END) as total_terkirim,
     SUM(CASE WHEN LOWER(t.status) = 'keluar' OR LOWER(t.status) = 'out' THEN t.jumlah ELSE 0 END) as total_keluar
 FROM transaksi t
 JOIN barang b ON t.id_barang = b.id_barang
@@ -157,7 +157,7 @@ SELECT
     supplier,
     COUNT(*) as total_transaksi,
     SUM(jumlah) as total_barang,
-    SUM(CASE WHEN LOWER(status) = 'masuk' OR LOWER(status) = 'in' OR LOWER(status) = 'berhasil' THEN jumlah ELSE 0 END) as total_masuk,
+    SUM(CASE WHEN LOWER(status) = 'terkirim' OR LOWER(status) = 'in' OR LOWER(status) = 'berhasil' THEN jumlah ELSE 0 END) as total_terkirim,
     SUM(CASE WHEN LOWER(status) = 'keluar' OR LOWER(status) = 'out' THEN jumlah ELSE 0 END) as total_keluar
 FROM transaksi 
 WHERE supplier IS NOT NULL 
@@ -476,7 +476,7 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
             border-color: var(--primary-color);
         }
         
-        .stat-card.masuk {
+        .stat-card.terkirim {
             border-color: #17a2b8;
         }
         
@@ -507,7 +507,7 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
             border-radius: 6px;
         }
         
-        .badge-masuk {
+        .badge-terkirim {
             background-color: rgba(23, 162, 184, 0.1);
             color: #17a2b8;
             border: 1px solid rgba(23, 162, 184, 0.3);
@@ -853,7 +853,7 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
                 margin-right: 0 !important;
             }
             
-            .badge-masuk, .badge-keluar {
+            .badge-terkirim, .badge-keluar {
                 font-size: 0.75rem;
                 padding: 0.3rem 0.6rem;
             }
@@ -1030,7 +1030,7 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
                 background: transparent !important;
             }
             
-            .badge-masuk, .badge-keluar {
+            .badge-terkirim, .badge-keluar {
                 border: 1px solid #000;
                 background: transparent !important;
             }
@@ -1170,15 +1170,15 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
                     </div>
                     
                     <div class="col-xl-4 col-md-4">
-                        <div class="card stat-card masuk">
+                        <div class="card stat-card terkirim">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
                                         <h6 class="text-muted mb-2">Barang Dikirim Ke Supplier</h6>
-                                        <h2 class="mb-0 fw-bold"><?php echo number_format($stats['total_barang_masuk'] ?? 0); ?> <small class="fs-6">buah</small></h2>
+                                        <h2 class="mb-0 fw-bold"><?php echo number_format($stats['total_barang_terkirim'] ?? 0); ?> <small class="fs-6">buah</small></h2>
                                         <small class="text-muted">
                                             <i class="bi bi-truck me-1"></i>
-                                            <?php echo number_format($stats['total_masuk'] ?? 0); ?> transaksi
+                                            <?php echo number_format($stats['total_terkirim'] ?? 0); ?> transaksi
                                         </small>
                                     </div>
                                     <div class="align-self-center">
@@ -1203,7 +1203,7 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
                                     <small class="text-muted">Periode <?php echo date('d/m/Y', strtotime($start_date)); ?> - <?php echo date('d/m/Y', strtotime($end_date)); ?></small>
                                 </div>
                                 <div class="d-flex gap-2">
-                                    <span class="badge-masuk">Barang Dikirim</span>
+                                    <span class="badge-terkirim">Barang Dikirim</span>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -1245,7 +1245,7 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
                                         <div class="d-flex justify-content-between mt-1">
                                             <small class="text-muted"><?php echo $supplier['total_transaksi']; ?> transaksi</small>
                                             <small class="text-muted">
-                                                M:<?php echo $supplier['total_masuk'] ?? 0; ?> | 
+                                                T:<?php echo $supplier['total_terkirim'] ?? 0; ?> | 
                                                 K:<?php echo $supplier['total_keluar'] ?? 0; ?>
                                             </small>
                                         </div>
@@ -1285,7 +1285,6 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
                                                     <th class="text-center">Frekuensi</th>
                                                     <th class="text-end">Total Barang</th>
                                                     <th class="text-end">Dikirim</th>
-                                                    <th class="text-end">Diterima</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1305,10 +1304,7 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
                                                         <span class="badge" style="background-color: #6c757d; color: white;"><?php echo number_format($barang['total_barang']); ?></span>
                                                     </td>
                                                     <td class="text-end">
-                                                        <span class="badge-masuk"><?php echo number_format($barang['total_masuk'] ?? 0); ?></span>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <span class="badge-keluar"><?php echo number_format($barang['total_keluar'] ?? 0); ?></span>
+                                                        <span class="badge-terkirim"><?php echo number_format($barang['total_terkirim'] ?? 0); ?></span>
                                                     </td>
                                                 </tr>
                                                 <?php endforeach; ?>
@@ -1338,7 +1334,7 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
                         </div>
                         <div class="d-flex gap-2 mt-2 mt-sm-0">
                             <span class="badge bg-primary">Total: <?php echo $total_rows; ?></span>
-                            <span class="badge bg-info">M: <?php echo $stats['total_masuk'] ?? 0; ?></span>
+                            <span class="badge bg-info">M: <?php echo $stats['total_terkirim'] ?? 0; ?></span>
                             <span class="badge" style="background-color: #f72585;">K: <?php echo $stats['total_keluar'] ?? 0; ?></span>
                         </div>
                     </div>
@@ -1368,12 +1364,12 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
                                             $badge_class = 'bg-secondary';
                                             $badge_text = ucfirst($row['status']);
                                             
-                                            if ($status_lower == 'masuk' || $status_lower == 'in') {
+                                            if ($status_lower == 'terkirim' || $status_lower == 'in') {
                                                 $badge_class = 'bg-info';
-                                                $badge_text = 'MASUK';
-                                            } elseif ($status_lower == 'keluar' || $status_lower == 'out') {
+                                                $badge_text = 'TERKIRIM';
+                                            } elseif ($status_lower == 'tertunda' || $status_lower == 'out') {
                                                 $badge_class = 'bg-danger';
-                                                $badge_text = 'KELUAR';
+                                                $badge_text = 'TERTUNDA';
                                             } elseif ($status_lower == 'berhasil') {
                                                 $badge_class = 'bg-success';
                                                 $badge_text = 'BERHASIL';
@@ -1733,7 +1729,7 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
             doc.setTextColor(0, 0, 0);
             doc.text(`Total Transaksi: ${formatNumber(<?php echo $stats['total_transaksi'] ?? 0; ?>)}`, 20, 58);
             doc.text(`Total Barang: ${formatNumber(<?php echo $stats['total_barang'] ?? 0; ?>)} buah`, 100, 58);
-            doc.text(`Barang Dikirim: ${formatNumber(<?php echo $stats['total_barang_masuk'] ?? 0; ?>)} buah`, 180, 58);
+            doc.text(`Barang Dikirim: ${formatNumber(<?php echo $stats['terkirim'] ?? 0; ?>)} buah`, 180, 58);
             doc.text(`Barang Diterima: ${formatNumber(<?php echo $stats['total_barang_keluar'] ?? 0; ?>)} buah`, 20, 66);
             
             // Ambil data dari tabel

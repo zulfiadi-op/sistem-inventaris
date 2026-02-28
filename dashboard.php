@@ -982,7 +982,7 @@ while ($row = mysqli_fetch_assoc($result_transaksi_terbaru)) {
                                                     <td data-label="Tanggal"><?php echo date('H:i', strtotime($trans['tanggal_transaksi'])); ?></td>
                                                     <td data-label="Barang" class="fw-bold"><?php echo htmlspecialchars($trans['nama_barang']); ?></td>
                                                     <td data-label="Jenis">
-                                                        <span class="badge <?php echo $trans['status'] == 'masuk' ? 'bg-success' : 'bg-danger'; ?>">
+                                                        <span class="badge <?php echo $trans['status'] == 'terkirim' ? 'bg-success' : 'bg-danger'; ?>">
                                                             <?php echo ucfirst($trans['status']); ?>
                                                         </span>
                                                     </td>

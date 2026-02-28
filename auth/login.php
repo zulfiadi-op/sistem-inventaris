@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Login - Inventaris Roti</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -72,7 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background-size: 300% 300%;
             animation: gradientWave 15s ease infinite;
             position: relative;
-            overflow: hidden;
+            overflow-x: hidden;
+            padding: 16px;
         }
 
         /* Ocean wave animation */
@@ -84,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             100% { background-position: 0% 50%; }
         }
 
-        /* Animated background bubbles */
+        /* Animated background bubbles - responsive */
         .bubble {
             position: absolute;
             border-radius: 50%;
@@ -96,32 +97,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .bubble-1 {
-            width: 200px;
-            height: 200px;
+            width: min(200px, 30vw);
+            height: min(200px, 30vw);
             top: -50px;
             left: -50px;
             animation: bubbleFloat 12s infinite;
         }
 
         .bubble-2 {
-            width: 300px;
-            height: 300px;
+            width: min(300px, 40vw);
+            height: min(300px, 40vw);
             bottom: -100px;
             right: -100px;
             animation: bubbleFloat 15s infinite reverse;
         }
 
         .bubble-3 {
-            width: 150px;
-            height: 150px;
+            width: min(150px, 25vw);
+            height: min(150px, 25vw);
             top: 30%;
             right: 10%;
             animation: bubbleFloat 10s infinite 2s;
         }
 
         .bubble-4 {
-            width: 100px;
-            height: 100px;
+            width: min(100px, 20vw);
+            height: min(100px, 20vw);
             bottom: 20%;
             left: 15%;
             animation: bubbleFloat 9s infinite 1s;
@@ -146,11 +147,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        /* Login card animations */
+        /* Login wrapper - fully responsive */
         .login-wrapper {
             width: 100%;
-            max-width: 480px;
-            padding: 20px;
+            max-width: min(480px, 95%);
+            margin: 0 auto;
             position: relative;
             z-index: 20;
             animation: floatIn 1.2s cubic-bezier(0.23, 1, 0.32, 1);
@@ -171,22 +172,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        /* Login card - responsive */
         .login-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
-            border-radius: 2.5rem;
+            border-radius: min(2.5rem, 40px);
             box-shadow: var(--shadow-3), var(--glow);
-            padding: 3rem 2.5rem;
+            padding: clamp(1.5rem, 5vw, 3rem) clamp(1.5rem, 4vw, 2.5rem);
             border: 1px solid rgba(96, 165, 250, 0.3);
             position: relative;
             overflow: hidden;
             transition: all 0.4s ease;
+            width: 100%;
         }
 
         .login-card:hover {
             transform: translateY(-8px) scale(1.02);
             box-shadow: 0 30px 60px rgba(11, 47, 158, 0.3), 0 0 40px rgba(59, 130, 246, 0.4);
             border-color: var(--light-blue);
+        }
+
+        /* Responsive hover effect for touch devices */
+        @media (hover: none) {
+            .login-card:hover {
+                transform: none;
+            }
         }
 
         .login-card::before {
@@ -231,16 +241,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             100% { background-position: 0% 50%; }
         }
 
-        /* Icon box animation */
+        /* Icon box - responsive */
         .icon-box {
-            width: 120px;
-            height: 120px;
+            width: clamp(80px, 20vw, 120px);
+            height: clamp(80px, 20vw, 120px);
             background: linear-gradient(145deg, rgba(11, 47, 158, 0.1), rgba(37, 99, 235, 0.2), rgba(96, 165, 250, 0.1));
-            border-radius: 2.5rem 2.5rem 1rem 2.5rem;
+            border-radius: min(2.5rem, 30px) min(2.5rem, 30px) min(1rem, 15px) min(2.5rem, 30px);
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 2rem;
+            margin: 0 auto clamp(1rem, 3vw, 2rem);
             position: relative;
             animation: morphIn 1.2s ease;
             border: 2px solid rgba(96, 165, 250, 0.4);
@@ -248,7 +258,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .icon-box i {
-            font-size: 4.5rem;
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
             background: linear-gradient(145deg, #0B2F9E, #2563EB, #60A5FA);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -263,12 +273,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 transform: rotate(0deg) scale(0.5);
             }
             50% {
-                border-radius: 3rem;
+                border-radius: min(3rem, 40px);
                 transform: rotate(25deg) scale(1.1);
             }
             100% {
                 opacity: 1;
-                border-radius: 2.5rem 2.5rem 1rem 2.5rem;
+                border-radius: min(2.5rem, 30px) min(2.5rem, 30px) min(1rem, 15px) min(2.5rem, 30px);
                 transform: rotate(45deg) scale(1);
             }
         }
@@ -297,31 +307,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             50% { opacity: 0.6; transform: scale(1.05); }
         }
 
-        /* Typography */
+        /* Typography - responsive */
         h1 {
             font-weight: 800;
-            font-size: 2.5rem;
+            font-size: clamp(1.5rem, 6vw, 2.5rem);
             margin-bottom: 0.25rem;
             background: linear-gradient(145deg, #0B2F9E, #2563EB, #3B82F6);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             animation: slideUpText 0.8s ease 0.2s both;
             letter-spacing: -0.5px;
+            line-height: 1.2;
         }
 
         .subtitle {
             color: var(--secondary);
             font-weight: 600;
-            font-size: 1.1rem;
+            font-size: clamp(0.9rem, 3vw, 1.1rem);
             margin-bottom: 0.5rem;
             animation: slideUpText 0.8s ease 0.3s both;
             text-shadow: 0 2px 5px rgba(37, 99, 235, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 4px;
         }
 
         .text-muted {
             color: #4B5563 !important;
-            font-size: 0.95rem;
-            margin-bottom: 2.5rem;
+            font-size: clamp(0.8rem, 2.5vw, 0.95rem);
+            margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
             animation: slideUpText 0.8s ease 0.4s both;
         }
 
@@ -336,9 +352,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        /* Form group animations */
+        /* Form group - responsive */
         .form-group {
-            margin-bottom: 2rem;
+            margin-bottom: clamp(1.5rem, 3vw, 2rem);
             animation: slideInRight 0.8s ease;
             position: relative;
         }
@@ -359,7 +375,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .form-label {
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: clamp(0.8rem, 2.5vw, 0.9rem);
             color: var(--primary);
             margin-bottom: 0.5rem;
             display: flex;
@@ -371,6 +387,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: var(--secondary);
             margin-right: 8px;
             transition: transform 0.3s ease;
+            font-size: clamp(0.9rem, 3vw, 1rem);
         }
 
         .form-group:hover .form-label i {
@@ -378,12 +395,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: var(--light-blue);
         }
 
+        /* Input group - responsive */
         .input-group {
             transition: all 0.3s ease;
-            border-radius: 1.2rem;
+            border-radius: clamp(1rem, 3vw, 1.2rem);
             overflow: hidden;
             border: 2px solid transparent;
             box-shadow: 0 4px 10px rgba(11, 47, 158, 0.1);
+            flex-wrap: nowrap;
         }
 
         .input-group:focus-within {
@@ -396,9 +415,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: linear-gradient(145deg, #F0F9FF, #E0F2FE);
             border: none;
             color: var(--secondary);
-            padding: 0.875rem 1.5rem;
+            padding: clamp(0.6rem, 2vw, 0.875rem) clamp(0.8rem, 3vw, 1.5rem);
             transition: all 0.3s ease;
-            font-size: 1.1rem;
+            font-size: clamp(0.9rem, 3vw, 1.1rem);
         }
 
         .input-group:focus-within .input-group-text {
@@ -408,10 +427,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .form-control {
             border: none;
-            padding: 0.875rem 1.5rem;
-            font-size: 1rem;
+            padding: clamp(0.6rem, 2vw, 0.875rem) clamp(0.8rem, 3vw, 1.5rem);
+            font-size: clamp(0.9rem, 3vw, 1rem);
             background: linear-gradient(145deg, #F0F9FF, #E0F2FE);
             transition: all 0.3s ease;
+            min-width: 0; /* Prevents overflow on small screens */
         }
 
         .form-control:focus {
@@ -422,20 +442,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-control::placeholder {
             color: #94A3B8;
             font-weight: 400;
+            font-size: clamp(0.8rem, 2.5vw, 0.9rem);
         }
 
-        /* Alert animation */
+        /* Alert - responsive */
         .alert {
-            border-radius: 1.2rem;
-            font-size: 0.9rem;
+            border-radius: clamp(1rem, 3vw, 1.2rem);
+            font-size: clamp(0.8rem, 2.5vw, 0.9rem);
             font-weight: 500;
-            margin-bottom: 2rem;
+            margin-bottom: clamp(1.5rem, 4vw, 2rem);
             border: none;
             background: linear-gradient(145deg, rgba(37, 99, 235, 0.1), rgba(96, 165, 250, 0.1));
             color: var(--secondary);
             backdrop-filter: blur(10px);
             animation: slideInShake 0.6s ease;
-            padding: 1rem 1.5rem;
+            padding: clamp(0.8rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
         }
 
         @keyframes slideInShake {
@@ -455,23 +476,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        /* Button animation */
+        /* Button - responsive */
         .btn-primary {
             background: linear-gradient(145deg, #0B2F9E, #2563EB, #3B82F6);
             background-size: 200% 200%;
             border: none;
-            padding: 1.2rem;
+            padding: clamp(0.8rem, 3vw, 1.2rem) clamp(1rem, 4vw, 1.5rem);
             font-weight: 700;
-            font-size: 1.1rem;
-            border-radius: 1.5rem;
+            font-size: clamp(0.9rem, 3vw, 1.1rem);
+            border-radius: clamp(1rem, 4vw, 1.5rem);
             transition: all 0.4s ease;
-            margin-top: 2rem;
+            margin-top: clamp(1.5rem, 4vw, 2rem);
             position: relative;
             overflow: hidden;
             animation: slideUpText 0.8s ease 0.6s both;
             z-index: 1;
             text-transform: uppercase;
             letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        /* Responsive button text */
+        @media (max-width: 360px) {
+            .btn-primary {
+                white-space: normal;
+                line-height: 1.4;
+            }
         }
 
         .btn-primary::before {
@@ -500,13 +530,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transform: translateY(-1px) scale(0.98);
         }
 
-        /* Particles animation - Blue theme */
+        /* Particles - responsive */
         .particles {
             position: absolute;
             width: 100%;
             height: 100%;
             overflow: hidden;
             z-index: 1;
+            pointer-events: none;
         }
 
         .particle {
@@ -537,15 +568,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        /* Copyright */
+        /* Copyright - responsive */
         .copyright {
-            margin-top: 2rem;
-            font-size: 0.85rem;
+            margin-top: clamp(1.5rem, 4vw, 2rem);
+            font-size: clamp(0.7rem, 2.5vw, 0.85rem);
             color: rgba(255,255,255,0.95);
             text-align: center;
             animation: fadeInUp 1s ease 0.8s both;
             text-shadow: 0 2px 5px rgba(11, 47, 158, 0.3);
             letter-spacing: 0.5px;
+            padding: 0 8px;
+            word-wrap: break-word;
         }
 
         .copyright i {
@@ -571,7 +604,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        /* Loading animation for button */
+        /* Loading animation */
         .btn-primary.loading {
             pointer-events: none;
             opacity: 0.9;
@@ -587,9 +620,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             to { transform: rotate(360deg); }
         }
 
-        /* Additional styling */
+        /* Bread icon - responsive */
         .bread-icon {
-            font-size: 2rem;
+            font-size: clamp(1.2rem, 5vw, 2rem);
             margin-right: 0.5rem;
             color: var(--light-blue);
             animation: bounce 2s ease infinite;
@@ -598,6 +631,110 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         @keyframes bounce {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-5px); }
+        }
+
+        /* Responsive breakpoints adjustments */
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+            
+            .login-card {
+                border-radius: 28px;
+            }
+            
+            .input-group-text {
+                padding: 0.6rem 1rem;
+            }
+            
+            .copyright {
+                line-height: 1.5;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .input-group {
+                flex-wrap: wrap;
+            }
+            
+            .input-group > :first-child {
+                border-radius: 1rem 0 0 0;
+            }
+            
+            .input-group > :last-child {
+                border-radius: 0 0 1rem 1rem;
+            }
+            
+            .form-control {
+                text-align: left;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .login-wrapper {
+                max-width: 500px;
+            }
+        }
+
+        /* Landscape mode optimization */
+        @media (max-height: 600px) and (orientation: landscape) {
+            body {
+                padding: 10px;
+                align-items: flex-start;
+            }
+            
+            .login-wrapper {
+                max-width: min(480px, 90%);
+            }
+            
+            .login-card {
+                padding: 1.2rem;
+            }
+            
+            .icon-box {
+                width: 60px;
+                height: 60px;
+                margin-bottom: 1rem;
+            }
+            
+            .icon-box i {
+                font-size: 2rem;
+            }
+            
+            .form-group {
+                margin-bottom: 1rem;
+            }
+            
+            .copyright {
+                margin-top: 1rem;
+            }
+        }
+
+        /* Touch device optimizations */
+        @media (hover: none) and (pointer: coarse) {
+            .btn-primary:hover {
+                transform: none;
+            }
+            
+            .input-group:hover {
+                transform: none;
+            }
+            
+            .form-control, 
+            .btn-primary {
+                font-size: 16px; /* Prevents zoom on focus in iOS */
+            }
+        }
+
+        /* High-resolution screens */
+        @media (min-width: 1440px) {
+            .login-wrapper {
+                max-width: 520px;
+            }
+            
+            .login-card {
+                padding: 3.5rem;
+            }
         }
     </style>
 </head>
@@ -665,7 +802,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         
         <div class="copyright">
-            <i class="bi bi-c-circle me-1"></i> <?php echo date('Y'); ?> Inventaris Roti • Develped with Zulfiadi Nggolo Soro
+            <i class="bi bi-c-circle me-1"></i> <?php echo date('Y'); ?> Inventaris Roti • Developed with Zulfiadi Nggolo Soro
             <i class="bi bi-droplet"></i> <i class="bi bi-droplet"></i> <i class="bi bi-droplet"></i>
         </div>
     </div>
@@ -688,17 +825,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        // Create particles
+        // Create particles - responsive count based on screen size
         function createParticles() {
             const particlesContainer = document.getElementById('particles');
-            const particleCount = 40;
+            const screenWidth = window.innerWidth;
+            
+            // Adjust particle count based on screen size
+            let particleCount = 40;
+            if (screenWidth < 480) {
+                particleCount = 20;
+            } else if (screenWidth < 768) {
+                particleCount = 30;
+            }
             
             for (let i = 0; i < particleCount; i++) {
                 const particle = document.createElement('div');
                 particle.className = 'particle';
                 
-                // Random size between 3px and 10px
-                const size = Math.random() * 7 + 3;
+                // Random size between 3px and 10px, adjusted for mobile
+                const minSize = screenWidth < 480 ? 2 : 3;
+                const maxSize = screenWidth < 480 ? 6 : 10;
+                const size = Math.random() * (maxSize - minSize) + minSize;
                 particle.style.width = size + 'px';
                 particle.style.height = size + 'px';
                 
@@ -706,9 +853,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 particle.style.left = Math.random() * 100 + '%';
                 particle.style.bottom = '-10px';
                 
-                // Random animation delay
+                // Random animation delay and duration
                 particle.style.animationDelay = Math.random() * 10 + 's';
-                particle.style.animationDuration = (Math.random() * 15 + 15) + 's';
+                particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
                 
                 particlesContainer.appendChild(particle);
             }
@@ -738,6 +885,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Smooth scroll reveal for card
         window.addEventListener('load', function() {
             document.querySelector('.login-card').style.opacity = '1';
+        });
+
+        // Handle resize events to adjust particles if needed (optional)
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                // Optional: regenerate particles on resize if needed
+                const particlesContainer = document.getElementById('particles');
+                if (window.innerWidth < 480 && particlesContainer.children.length > 20) {
+                    // Could implement particle regeneration here if desired
+                }
+            }, 250);
+        });
+
+        // Prevent zoom on double tap for iOS
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Handle orientation change
+        window.addEventListener('orientationchange', function() {
+            // Force repaint for any layout adjustments
+            document.body.style.display = 'none';
+            document.body.offsetHeight; // Trigger reflow
+            document.body.style.display = '';
         });
     </script>
 </body>

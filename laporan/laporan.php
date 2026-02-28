@@ -192,6 +192,8 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
     <!-- jsPDF dan jsPDF-AutoTable untuk PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <!-- SheetJS untuk export Excel yang lebih rapi -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
         :root {
@@ -1620,53 +1622,68 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
             '</div>';
         <?php endif; ?>
         
-        // Export to Excel function
+        // Export to Excel function yang diperbaiki dengan format lebih rapi
         function exportToExcel() {
-            const table = document.querySelector('.table');
+            // Ambil data dari tabel
+            const table = document.getElementById('dataTable');
             if (!table) return;
             
-            const rows = table.querySelectorAll('tr');
-            let csv = [];
+            // Buat workbook baru
+            const wb = XLSX.utils.book_new();
             
-            // Get headers
+            // Ambil header
             const headers = [];
             table.querySelectorAll('thead th').forEach(th => {
                 headers.push(th.innerText.trim());
             });
-            csv.push(headers.join(','));
             
-            // Get data
-            rows.forEach((row, index) => {
-                if (index > 0) { // Skip header row
-                    const rowData = [];
-                    row.querySelectorAll('td').forEach(cell => {
-                        // Clean the cell text
-                        let text = cell.innerText.replace(/\n/g, ' ').replace(/,/g, ';').trim();
-                        rowData.push(text);
-                    });
-                    if (rowData.length > 0) {
-                        csv.push(rowData.join(','));
-                    }
+            // Ambil data baris
+            const rows = [];
+            table.querySelectorAll('tbody tr').forEach(row => {
+                const rowData = [];
+                row.querySelectorAll('td').forEach(cell => {
+                    // Bersihkan data dari HTML tags dan ambil teks murni
+                    let text = cell.innerText.replace(/\n/g, ' ').trim();
+                    rowData.push(text);
+                });
+                if (rowData.length > 0) {
+                    rows.push(rowData);
                 }
             });
             
-            const csvContent = csv.join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
+            // Buat worksheet dari data
+            const wsData = [headers, ...rows];
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
             
-            link.setAttribute('href', url);
-            link.setAttribute('download', 'laporan_supplier_<?php echo date('Y-m-d'); ?>.csv');
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // Atur lebar kolom agar lebih rapi
+            const colWidths = [
+                { wch: 5 },  // No
+                { wch: 20 }, // Tanggal & Waktu
+                { wch: 25 }, // Barang
+                { wch: 15 }, // Kode
+                { wch: 12 }, // Jumlah
+                { wch: 12 }, // Status
+                { wch: 25 }, // Supplier
+                { wch: 30 }  // Keterangan
+            ];
+            ws['!cols'] = colWidths;
             
-            // Show success message
+            // Tambahkan worksheet ke workbook
+            XLSX.utils.book_append_sheet(wb, ws, 'Laporan Supplier');
+            
+            // Generate filename dengan periode
+            const startDate = '<?php echo $start_date; ?>'.replace(/-/g, '');
+            const endDate = '<?php echo $end_date; ?>'.replace(/-/g, '');
+            const filename = `laporan_supplier_${startDate}_${endDate}.xlsx`;
+            
+            // Export file
+            XLSX.writeFile(wb, filename);
+            
+            // Tampilkan notifikasi sukses
             Swal.fire({
                 icon: 'success',
                 title: 'Berhasil!',
-                text: 'Data berhasil diekspor ke Excel',
+                text: 'Laporan Excel berhasil diekspor',
                 showConfirmButton: false,
                 timer: 2000,
                 toast: true,
@@ -1716,22 +1733,6 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
             doc.setTextColor(100, 100, 100);
             doc.text(`Dicetak pada: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} ${new Date().toLocaleTimeString('id-ID')}`, 14, 36);
             
-            // Statistik
-            doc.setFillColor(245, 247, 250);
-            doc.rect(14, 42, 269, 30, 'F');
-            
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-            doc.text('STATISTIK', 20, 50);
-            
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(0, 0, 0);
-            doc.text(`Total Transaksi: ${formatNumber(<?php echo $stats['total_transaksi'] ?? 0; ?>)}`, 20, 58);
-            doc.text(`Total Barang: ${formatNumber(<?php echo $stats['total_barang'] ?? 0; ?>)} buah`, 100, 58);
-            doc.text(`Barang Dikirim: ${formatNumber(<?php echo $stats['terkirim'] ?? 0; ?>)} buah`, 180, 58);
-            doc.text(`Barang Diterima: ${formatNumber(<?php echo $stats['total_barang_keluar'] ?? 0; ?>)} buah`, 20, 66);
-            
             // Ambil data dari tabel
             const table = document.getElementById('dataTable');
             const headers = [];
@@ -1761,7 +1762,7 @@ while ($row = mysqli_fetch_assoc($result_supplier_stats)) {
             doc.autoTable({
                 head: [headers],
                 body: data,
-                startY: 80,
+                startY: 45,
                 theme: 'grid',
                 styles: {
                     fontSize: 8,

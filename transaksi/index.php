@@ -1538,10 +1538,10 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                             <label class="form-label fw-bold">Supplier <span class="text-danger">*</span></label>
                             <select class="form-select" name="supplier" id="modalSupplier" required>
                                 <option value="">Pilih Supplier</option>
-                                <option value="Supplier A">Supplier A</option>
-                                <option value="Supplier B">Supplier B</option>
-                                <option value="Supplier C">Supplier C</option>
-                                <option value="Supplier D">Supplier D</option>
+                                 <option value="Supplier A">KANTIN MAKN ENDE</option>
+                                <option value="Supplier B">LAUNDRY KAMAD</option>
+                                <option value="Supplier C">KIOS MAMA DILA</option>
+                                <option value="Supplier D">KIOS SIARAJAN</option>
                             </select>
                         </div>
                         
@@ -1608,10 +1608,10 @@ while ($row = mysqli_fetch_assoc($result_chart)) {
                             <label class="form-label fw-bold">Supplier <span class="text-danger">*</span></label>
                             <select class="form-select" name="supplier" id="editSupplier" required>
                                 <option value="">Pilih Supplier</option>
-                                <option value="Supplier A">Supplier A</option>
-                                <option value="Supplier B">Supplier B</option>
-                                <option value="Supplier C">Supplier C</option>
-                                <option value="Supplier D">Supplier D</option>
+                                <option value="Supplier A">KANTIN MAKN ENDE</option>
+                                <option value="Supplier B">LAUNDRY KAMAD</option>
+                                <option value="Supplier C">KIOS MAMA DILA</option>
+                                <option value="Supplier D">KIOS SIARAJAN</option>
                             </select>
                         </div>
                         

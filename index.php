@@ -1,15 +1,19 @@
 <?php
+// Redirect ke halaman login jika belum terautentikasi
 header('Location: auth/login.php');
 exit();
 ?>
 <?php
+// Memuat file session dan fungsi yang diperlukan
 require_once '/includes/session.php';
 require_once '/includes/functions.php';
+// Memeriksa apakah pengguna sudah login
 requireLogin();
 
+// Mengambil semua data barang dari database
 $barang = getAllBarang();
 
-// Pesan sukses/hapus
+// Menangani pesan sukses/error dari parameter URL
 $message = '';
 if (isset($_GET['message'])) {
     switch ($_GET['message']) {
@@ -28,11 +32,13 @@ if (isset($_GET['message'])) {
     }
 }
 
+// Mengatur judul halaman untuk header
 $page_title = 'Data Barang';
 ?>
 <?php include '/includes/header.php'; ?>
 <?php include '/includes/navbar.php'; ?>
 
+<!-- Area konten utama: Header halaman dengan judul dan tombol tambah -->
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Data Barang</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
@@ -42,16 +48,20 @@ $page_title = 'Data Barang';
     </div>
 </div>
 
+<!-- Menampilkan pesan sukses/error jika ada -->
 <?php echo $message; ?>
 
+<!-- Container card untuk tabel data barang -->
 <div class="card">
     <div class="card-body">
         <?php if (empty($barang)): ?>
+            <!-- Menampilkan alert info ketika belum ada data -->
             <div class="alert alert-info">
                 <i class="bi bi-info-circle"></i> Belum ada data barang. 
                 <a href="create.php" class="alert-link">Tambah barang pertama</a>
             </div>
         <?php else: ?>
+            <!-- Tabel responsif untuk menampilkan data barang -->
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead class="table-light">
@@ -72,12 +82,19 @@ $page_title = 'Data Barang';
                         <?php $no = 1; ?>
                         <?php foreach ($barang as $item): ?>
                         <tr>
+                            <!-- Penomoran baris -->
                             <td><?php echo $no++; ?></td>
+                            <!-- Kode barang dengan styling badge -->
                             <td>
                                 <span class="badge bg-secondary"><?php echo htmlspecialchars($item['kode_barang']); ?></span>
                             </td>
+                            <!-- Nama barang (diamankan dengan htmlspecialchars) -->
                             <td><?php echo htmlspecialchars($item['nama_barang']); ?></td>
+                            <!-- Varian barang -->
                             <td><?php echo htmlspecialchars($item['varian_barang']); ?></td>
+                            <!-- Kategori barang -->
+                            <td><?php echo htmlspecialchars($item['kategori']); ?></td>
+                            <!-- Stok dengan pewarnaan: warning jika stok menipis (<10), success jika mencukupi -->
                             <td>
                                 <?php if ($item['stok_barang'] < 10): ?>
                                     <span class="badge bg-warning text-dark"><?php echo $item['stok_barang']; ?></span>
@@ -85,9 +102,13 @@ $page_title = 'Data Barang';
                                     <span class="badge bg-success"><?php echo $item['stok_barang']; ?></span>
                                 <?php endif; ?>
                             </td>
+                            <!-- Satuan barang -->
                             <td><?php echo htmlspecialchars($item['satuan']); ?></td>
+                            <!-- Harga beli diformat ke Rupiah -->
                             <td><?php echo formatRupiah($item['harga_beli']); ?></td>
+                            <!-- Harga jual diformat ke Rupiah -->
                             <td><?php echo formatRupiah($item['harga_jual']); ?></td>
+                            <!-- Tombol aksi: Edit dan Hapus -->
                             <td>
                                 <div class="btn-group" role="group">
                                     <a href="edit.php?id=<?php echo $item['id']; ?>" 
@@ -115,4 +136,4 @@ $page_title = 'Data Barang';
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 <!-- Custom CSS -->
 <link rel="stylesheet" href="../css/style-new.css">
-<?php include '/includes/footer.php'; ?>
+<?php include '../includes/footer.php'; ?>
